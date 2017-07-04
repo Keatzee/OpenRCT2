@@ -24,12 +24,11 @@
 - Fix: [#3681] Steel Twister rollercoaster always shows all track designs
 - Fix: [#4054] Sorting rides by track type: Misleading research messages
 - Fix: [#4055] Sort rides by track type: Sorting rule is not really clear (inconsistent?)
+- Fix: [#5400] New Ride window does not focus properly on newly invented ride.
 - Fix: [#5009] Ride rating calculations can overflow
 - Fix: [#5253] RCT1 park value conversion factor too high
-- Fix: [#5400] New Ride window does not focus properly on newly invented ride.
 - Fix: [#5489] Sprite index crash for car view on car ride.
 - Fix: [#5730] Unable to uncheck 'No money' in the Scenario Editor.
-- Fix: [#5750] Game freezes when ride queue linked list is corrupted.
 - Fix: Non-invented vehicles can be used via track designs in select-by-track-type mode.
 - Fix: Track components added by OpenRCT2 are now usable in older scenarios.
 - Technical: [#5047] Add ride ratings tests
@@ -115,7 +114,6 @@
 - Fix: [#5003] Able to remove entrance/exit of unedittable rides (such as in Volcania).
 - Fix: [#5096] Failure to open parks with out of bounds sprite coordinates.
 - Fix: [#5114] Some entertainer costumes never select-able.
-- Fix: [#5381] Game crashes in scenario editor when scenery or pathing is clicked on when no objects loaded.
 
 0.0.5 (2016-12-27)
 ------------------------------------------------------------------------
