@@ -907,12 +907,8 @@ void window_scenery_invalidate(rct_window *w)
 {
     uint16 tabIndex = gWindowSceneryActiveTabIndex;
     uint32 titleStringId = STR_MISCELLANEOUS;
-    if (tabIndex < 19) {
-        rct_scenery_set_entry * sgEntry = get_scenery_group_entry(tabIndex);
-        if (sgEntry != NULL && sgEntry != (rct_scenery_set_entry *)-1) {
-            titleStringId = sgEntry->name;
-        }
-    }
+    if (tabIndex < 19)
+        titleStringId = get_scenery_group_entry(tabIndex)->name;
 
     window_scenery_widgets[WIDX_SCENERY_TITLE].text = titleStringId;
 
