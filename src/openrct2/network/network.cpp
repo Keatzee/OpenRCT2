@@ -1478,7 +1478,7 @@ NetworkPlayer* Network::AddPlayer(const utf8 *name, const std::string &keyhash)
             if (networkUser == nullptr) {
                 player->Group = GetDefaultGroup();
                 if (!String::IsNullOrEmpty(name)) {
-                    player->SetName(MakePlayerNameUnique(std::string(name)));
+                    player->SetName(MakePlayerNameUnique(String::Trim(std::string(name))));
                 }
             } else {
                 player->Group = networkUser->GroupId.GetValueOrDefault(GetDefaultGroup());
@@ -1488,7 +1488,7 @@ NetworkPlayer* Network::AddPlayer(const utf8 *name, const std::string &keyhash)
             player = std::unique_ptr<NetworkPlayer>(new NetworkPlayer); // change to make_unique in c++14
             player->Id = newid;
             player->Group = GetDefaultGroup();
-            player->SetName(name);
+            player->SetName(String::Trim(std::string(name)));
         }
 
         addedplayer = player.get();
@@ -1851,6 +1851,9 @@ void Network::Client_Handle_MAP(NetworkConnection& connection, NetworkPacket& pa
 
             // Notify user he is now online and which shortcut key enables chat
             network_chat_show_connected_message();
+
+            // Fix invalid vehicle sprite sizes, thus preventing visual corruption of sprites
+            fix_invalid_vehicle_sprite_sizes();
         }
         else
         {
@@ -1906,7 +1909,8 @@ bool Network::LoadMap(IStream * stream)
         gCheatsAllowArbitraryRideTypeChanges = stream->ReadValue<uint8>() != 0;
         gCheatsDisableRideValueAging = stream->ReadValue<uint8>() != 0;
         gConfigGeneral.show_real_names_of_guests = stream->ReadValue<uint8>() != 0;
-
+        gCheatsIgnoreResearchStatus = stream->ReadValue<uint8>() != 0;
+        
         gLastAutoSaveUpdate = AUTOSAVE_PAUSE;
         result = true;
     }
@@ -1953,6 +1957,7 @@ bool Network::SaveMap(IStream * stream, const std::vector<const ObjectRepository
         stream->WriteValue<uint8>(gCheatsAllowArbitraryRideTypeChanges);
         stream->WriteValue<uint8>(gCheatsDisableRideValueAging);
         stream->WriteValue<uint8>(gConfigGeneral.show_real_names_of_guests);
+        stream->WriteValue<uint8>(gCheatsIgnoreResearchStatus);
 
         result = true;
     }
@@ -2529,13 +2534,15 @@ void game_command_modify_groups(sint32 *eax, sint32 *ebx, sint32 *ecx, sint32 *e
 
             // Log add player group event
             NetworkPlayer* game_command_player = gNetwork.GetPlayerByID(game_command_playerid);
-            char log_msg[256];
-            const char * args[2] = {
-                (char *) game_command_player->Name.c_str(),
-                (char *) newgroup->GetName().c_str()
-            };
-            format_string(log_msg, 256, STR_LOG_ADD_PLAYER_GROUP, args);
-            network_append_server_log(log_msg);
+            if (game_command_player) {
+                char log_msg[256];
+                const char * args[2] = {
+                    (char *) game_command_player->Name.c_str(),
+                    (char *) newgroup->GetName().c_str()
+                };
+                format_string(log_msg, 256, STR_LOG_ADD_PLAYER_GROUP, args);
+                network_append_server_log(log_msg);
+            }
         }
     }break;
     case 1:{ // remove group
@@ -2557,14 +2564,16 @@ void game_command_modify_groups(sint32 *eax, sint32 *ebx, sint32 *ecx, sint32 *e
             // Log remove player group event
             NetworkPlayer* game_command_player = gNetwork.GetPlayerByID(game_command_playerid);
             NetworkGroup* group = gNetwork.GetGroupByID(groupid);
-            char* groupName = (char *)group->GetName().c_str();
-            char log_msg[256];
-            const char * args[2] = {
-                (char *) game_command_player->Name.c_str(),
-                groupName
-            };
-            format_string(log_msg, 256, STR_LOG_REMOVE_PLAYER_GROUP, args);
-            network_append_server_log(log_msg);
+            if (game_command_player && group) {
+                char* groupName = (char *)group->GetName().c_str();
+                char log_msg[256];
+                const char * args[2] = {
+                    (char *) game_command_player->Name.c_str(),
+                    groupName
+                };
+                format_string(log_msg, 256, STR_LOG_REMOVE_PLAYER_GROUP, args);
+                network_append_server_log(log_msg);
+            }
 
             gNetwork.RemoveGroup(groupid);
         }
@@ -2697,6 +2706,7 @@ void game_command_kick_player(sint32 *eax, sint32 *ebx, sint32 *ecx, sint32 *edx
 {
     uint8 playerid = (uint8)*eax;
     NetworkPlayer* player = gNetwork.GetPlayerByID(playerid);
+    NetworkPlayer* kicker = gNetwork.GetPlayerByID(game_command_playerid);
     if (player == nullptr) {
         // Player might be already removed by the PLAYERLIST command, need to refactor non-game commands executing too early.
         return;
@@ -2708,6 +2718,7 @@ void game_command_kick_player(sint32 *eax, sint32 *ebx, sint32 *ecx, sint32 *edx
         *ebx = MONEY32_UNDEFINED;
         return;
     }
+
     if (*ebx & GAME_COMMAND_FLAG_APPLY) {
         if (gNetwork.GetMode() == NETWORK_MODE_SERVER) {
             gNetwork.KickPlayer(playerid);
@@ -2718,15 +2729,16 @@ void game_command_kick_player(sint32 *eax, sint32 *ebx, sint32 *ecx, sint32 *edx
             networkUserManager->Save();
         }
 
-        // Log kick player event
-        NetworkPlayer* kicker = gNetwork.GetPlayerByID(game_command_playerid);
-        char log_msg[256];
-        const char * args[2] = {
-            (char *) player->Name.c_str(),
-            (char *) kicker->Name.c_str(),
-        };
-        format_string(log_msg, 256, STR_LOG_PLAYER_KICKED, args);
-        network_append_server_log(log_msg);
+        if (kicker != nullptr) {
+            // Log kick player event
+            char log_msg[256];
+            const char * args[2] = {
+                (char *) player->Name.c_str(),
+                (char *) kicker->Name.c_str(),
+            };
+            format_string(log_msg, 256, STR_LOG_PLAYER_KICKED, args);
+            network_append_server_log(log_msg);
+        }
     }
     *ebx = 0;
 }
@@ -2763,27 +2775,61 @@ sint32 network_can_perform_command(uint32 groupindex, uint32 index)
 
 void network_set_pickup_peep(uint8 playerid, rct_peep* peep)
 {
-    gNetwork.GetMode() == NETWORK_MODE_NONE ? _pickup_peep = peep : gNetwork.GetPlayerByID(playerid)->PickupPeep = peep;
+    if (gNetwork.GetMode() == NETWORK_MODE_NONE) {
+        _pickup_peep = peep;
+    } else {
+        NetworkPlayer* player = gNetwork.GetPlayerByID(playerid);
+        if (player) {
+            player->PickupPeep = peep;
+        }
+    }
 }
 
 rct_peep* network_get_pickup_peep(uint8 playerid)
 {
-    return gNetwork.GetMode() == NETWORK_MODE_NONE ? _pickup_peep : gNetwork.GetPlayerByID(playerid)->PickupPeep;
+    if (gNetwork.GetMode() == NETWORK_MODE_NONE) {
+        return _pickup_peep;
+    } else {
+        NetworkPlayer* player = gNetwork.GetPlayerByID(playerid);
+        if (player) {
+            return player->PickupPeep;
+        }
+        return nullptr;
+    }
 }
 
 void network_set_pickup_peep_old_x(uint8 playerid, sint32 x)
 {
-    gNetwork.GetMode() == NETWORK_MODE_NONE ? _pickup_peep_old_x = x : gNetwork.GetPlayerByID(playerid)->PickupPeepOldX = x;
+    if (gNetwork.GetMode() == NETWORK_MODE_NONE) {
+        _pickup_peep_old_x = x;
+    } else {
+        NetworkPlayer* player = gNetwork.GetPlayerByID(playerid);
+        if (player) {
+            player->PickupPeepOldX = x;
+        }
+    }
 }
 
 sint32 network_get_pickup_peep_old_x(uint8 playerid)
 {
-    return gNetwork.GetMode() == NETWORK_MODE_NONE ? _pickup_peep_old_x : gNetwork.GetPlayerByID(playerid)->PickupPeepOldX;
+    if (gNetwork.GetMode() == NETWORK_MODE_NONE) {
+        return _pickup_peep_old_x;
+    } else {
+        NetworkPlayer* player = gNetwork.GetPlayerByID(playerid);
+        if (player) {
+            return player->PickupPeepOldX;
+        }
+        return -1;
+    }
 }
 
 sint32 network_get_current_player_group_index()
 {
-    return network_get_group_index(gNetwork.GetPlayerByID(gNetwork.GetPlayerID())->Group);
+    NetworkPlayer* player = gNetwork.GetPlayerByID(gNetwork.GetPlayerID());
+    if (player) {
+        return network_get_group_index(player->Group);
+    }
+    return -1;
 }
 
 void network_send_map()

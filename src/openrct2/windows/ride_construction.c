@@ -135,7 +135,7 @@ static rct_widget window_ride_construction_widgets[] = {
 static void window_ride_construction_close(rct_window *w);
 static void window_ride_construction_mouseup(rct_window *w, rct_widgetindex widgetIndex);
 static void window_ride_construction_resize(rct_window *w);
-static void window_ride_construction_mousedown(rct_widgetindex widgetIndex, rct_window *w, rct_widget *widget);
+static void window_ride_construction_mousedown(rct_window *w, rct_widgetindex widgetIndex, rct_widget *widget);
 static void window_ride_construction_dropdown(rct_window *w, rct_widgetindex widgetIndex, sint32 dropdownIndex);
 static void window_ride_construction_update(rct_window *w);
 static void window_ride_construction_toolupdate(rct_window* w, rct_widgetindex widgetIndex, sint32 x, sint32 y);
@@ -1293,7 +1293,7 @@ static void window_ride_construction_resize(rct_window *w)
  *
  *  rct2: 0x006C6E6A
  */
-static void window_ride_construction_mousedown(rct_widgetindex widgetIndex, rct_window *w, rct_widget *widget)
+static void window_ride_construction_mousedown(rct_window *w, rct_widgetindex widgetIndex, rct_widget *widget)
 {
     rct_ride *ride = get_ride(_currentRideIndex);
 
@@ -2739,7 +2739,7 @@ static void window_ride_construction_update_enabled_track_pieces()
     }
     else
     {
-        if (track_type_has_ride_groups(rideType))
+        if (ride_type_has_ride_groups(rideType))
         {
             const ride_group * rideGroup = get_ride_group(rideType, rideEntry);
             _enabledRidePieces = rideGroup->available_track_pieces;
@@ -3578,7 +3578,13 @@ static void window_ride_construction_show_special_track_dropdown(rct_window *w, 
         widget->right - widget->left
     );
 
-    gDropdownItemsDisabled = _currentDisabledSpecialTrackPieces;
+    for (sint32 i = 0; i < 32; i++)
+    {
+        if (_currentDisabledSpecialTrackPieces & (1 << i))
+        {
+            dropdown_set_disabled(i, true);
+        }
+    }
     gDropdownDefaultIndex = defaultIndex;
 }
 

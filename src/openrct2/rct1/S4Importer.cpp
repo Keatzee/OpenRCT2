@@ -310,15 +310,6 @@ private:
         // Avoid reusing the value used for last import
         _parkValueConversionFactor = 0;
 
-        Memory::Set(_rideTypeToRideEntryMap,     255, sizeof(_rideTypeToRideEntryMap));
-        Memory::Set(_vehicleTypeToRideEntryMap,  255, sizeof(_vehicleTypeToRideEntryMap));
-        Memory::Set(_smallSceneryTypeToEntryMap, 255, sizeof(_smallSceneryTypeToEntryMap));
-        Memory::Set(_largeSceneryTypeToEntryMap, 255, sizeof(_largeSceneryTypeToEntryMap));
-        Memory::Set(_wallTypeToEntryMap,         255, sizeof(_wallTypeToEntryMap));
-        Memory::Set(_pathTypeToEntryMap,         255, sizeof(_pathTypeToEntryMap));
-        Memory::Set(_pathAdditionTypeToEntryMap, 255, sizeof(_pathAdditionTypeToEntryMap));
-        Memory::Set(_sceneryThemeTypeToEntryMap, 255, sizeof(_sceneryThemeTypeToEntryMap));
-
         InitialiseEntryMaps();
         uint16 mapSize = _s4.map_size == 0 ? 128 : _s4.map_size;
 
@@ -778,7 +769,7 @@ private:
         {
             dst->vehicles[i] = src->vehicles[i];
         }
-        for (sint32 i = RCT1_MAX_TRAINS_PER_RIDE; i < 32; i++)
+        for (sint32 i = RCT1_MAX_TRAINS_PER_RIDE; i < MAX_VEHICLES_PER_RIDE; i++)
         {
             dst->vehicles[i] = SPRITE_INDEX_NULL;
         }
@@ -843,6 +834,7 @@ private:
         dst->last_inspection = src->last_inspection;
         dst->reliability = src->reliability;
         dst->unreliability_factor = src->unreliability_factor;
+        dst->downtime = src->downtime;
         dst->breakdown_reason = src->breakdown_reason;
         dst->mechanic_status = src->mechanic_status;
         dst->mechanic = src->mechanic;
@@ -1016,19 +1008,6 @@ private:
                 {
                     ride->vehicles[j] = spriteIndexMap[originalIndex];
                 }
-            }
-        }
-    }
-
-    void FixNumPeepsInQueue()
-    {
-        sint32 i;
-        rct_ride *ride;
-        FOR_ALL_RIDES(i, ride)
-        {
-            for (sint32 stationIndex = 0; stationIndex < RCT12_MAX_STATIONS_PER_RIDE; stationIndex++)
-            {
-                ride->queue_length[stationIndex] = 0;
             }
         }
     }
@@ -1380,11 +1359,11 @@ private:
         dst->direction = src->direction;
 
         dst->energy = src->energy;
-        dst->energy_growth_rate = src->energy_growth_rate;
+        dst->energy_target = src->energy_target;
         dst->happiness = src->happiness;
-        dst->happiness_growth_rate = src->happiness_growth_rate;
+        dst->happiness_target = src->happiness_target;
         dst->nausea = src->nausea;
-        dst->nausea_growth_rate = src->nausea_growth_rate;
+        dst->nausea_target = src->nausea_target;
         dst->hunger = src->hunger;
         dst->thirst = src->thirst;
         dst->bathroom = src->bathroom;
@@ -1788,6 +1767,7 @@ private:
             if (ori == nullptr)
             {
                 missingObjects.push_back(entry);
+                Console::Error::WriteLine("[%s] Object not found.", objectName);
             }
             else
             {
@@ -1795,6 +1775,7 @@ private:
                 if (object == nullptr && objectType != OBJECT_TYPE_SCENERY_SETS)
                 {
                     missingObjects.push_back(entry);
+                    Console::Error::WriteLine("[%s] Object could not be loaded.", objectName);
                 }
                 delete object;
             }
@@ -2057,10 +2038,17 @@ private:
         // Flags
         gParkFlags = _s4.park_flags;
         gParkFlags &= ~PARK_FLAGS_ANTI_CHEAT_DEPRECATED;
+        // Loopy Landscape parks can set a flag to lock the entry price to free. 
+        // If this flag is not set, the player can ask money for both rides and entry.
         if (!(_s4.park_flags & RCT1_PARK_FLAGS_PARK_ENTRY_LOCKED_AT_FREE))
         {
             gCheatsUnlockAllPrices = true;
         }
+        else
+        {
+            gCheatsUnlockAllPrices = false;
+        }
+
         // RCT2 uses two flags for no money (due to the scenario editor). RCT1 used only one.
         // Copy its value to make no money scenarios such as Arid Heights work properly.
         if (_s4.park_flags & RCT1_PARK_FLAGS_NO_MONEY)
@@ -2670,7 +2658,7 @@ extern "C"
         auto s4Importer = std::make_unique<S4Importer>();
         try
         {
-            result = new ParkLoadResult(s4Importer->LoadSavedGame(path));
+            result = new ParkLoadResult(s4Importer->LoadScenario(path));
             if (result->Error == PARK_LOAD_ERROR_OK)
             {
                 s4Importer->Import();

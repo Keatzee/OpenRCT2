@@ -162,7 +162,7 @@ public:
                     SkipToNextLoadCommand();
                     if (_position == entryPosition)
                     {
-                        Console::Error::WriteLine("Unable to load any parks within title sequence.");
+                        Console::Error::WriteLine("Unable to load any parks from %s.", _sequence->Name);
                         return false;
                     }
                 }
@@ -247,7 +247,8 @@ private:
             _waitCounter = 1;
             break;
         case TITLE_SCRIPT_WAIT:
-            _waitCounter = command->Seconds * UPDATE_FPS;
+            // The waitCounter is measured in 25-ms game ticks. Previously it was seconds * 40 ticks/second, now it is ms / 25 ms/tick
+            _waitCounter = Math::Max<sint32>(1, command->Milliseconds / (uint32)GAME_UPDATE_TIME_MS);
             break;
         case TITLE_SCRIPT_LOADMM:
         {

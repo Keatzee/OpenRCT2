@@ -237,6 +237,11 @@ enum {
     ELEMENT_IS_UNDERWATER = 1 << 2,
 };
 
+enum
+{
+    MAP_ELEM_TRACK_SEQUENCE_GREEN_LIGHT = (1 << 7),
+};
+
 #define MAP_ELEMENT_QUADRANT_MASK 0xC0
 #define MAP_ELEMENT_TYPE_MASK 0x3C
 #define MAP_ELEMENT_DIRECTION_MASK 0x03
@@ -248,6 +253,8 @@ enum {
 #define MAP_ELEMENT_WATER_HEIGHT_MASK 0x1F
 #define MAP_ELEMENT_SURFACE_TERRAIN_MASK 0xE0
 
+#define MAP_ELEM_TRACK_SEQUENCE_STATION_INDEX_MASK 0x70
+#define MAP_ELEM_TRACK_SEQUENCE_SEQUENCE_MASK 0x0F
 
 #define MINIMUM_MAP_SIZE_TECHNICAL 15
 #define MAXIMUM_MAP_SIZE_TECHNICAL 256
@@ -261,6 +268,7 @@ enum {
 #define MAX_TILE_MAP_ELEMENT_POINTERS (MAXIMUM_MAP_SIZE_TECHNICAL * MAXIMUM_MAP_SIZE_TECHNICAL)
 #define MAX_PEEP_SPAWNS 2
 #define PEEP_SPAWN_UNDEFINED 0xFFFF
+#define RCT_XY8_UNDEFINED 0xFFFF
 
 #define MAP_ELEMENT_LARGE_TYPE_MASK 0x3FF
 
@@ -451,6 +459,7 @@ bool map_element_check_address(const rct_map_element * const element);
 
 typedef sint32 (CLEAR_FUNC)(rct_map_element** map_element, sint32 x, sint32 y, uint8 flags, money32* price);
 sint32 map_place_non_scenery_clear_func(rct_map_element** map_element, sint32 x, sint32 y, uint8 flags, money32* price);
+sint32 map_place_scenery_clear_func(rct_map_element** map_element, sint32 x, sint32 y, uint8 flags, money32* price);
 sint32 map_can_construct_with_clear_at(sint32 x, sint32 y, sint32 zLow, sint32 zHigh, CLEAR_FUNC *clearFunc, uint8 bl, uint8 flags, money32 *price);
 sint32 map_can_construct_at(sint32 x, sint32 y, sint32 zLow, sint32 zHigh, uint8 bl);
 void rotate_map_coordinates(sint16 *x, sint16 *y, sint32 rotation);

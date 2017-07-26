@@ -67,6 +67,8 @@ enum
 
 #ifdef __cplusplus
 
+#include <string>
+
 namespace OpenRCT2
 {
     interface IPlatformEnvironment;
@@ -94,20 +96,29 @@ namespace OpenRCT2
         virtual sint32 RunOpenRCT2(int argc, char * * argv) abstract;
 
         virtual bool Initialise() abstract;
+        virtual void Open(const std::string &path) abstract;
         virtual void Finish() abstract;
     };
 
     IContext * CreateContext();
     IContext * CreateContext(IPlatformEnvironment * env, Audio::IAudioContext * audioContext, Ui::IUiContext * uiContext);
     IContext * GetContext();
-
-    // The game update inverval in milliseconds, (1000 / 40fps) = 25ms
-    constexpr uint32 UPDATE_TIME_MS = 25;
-    // The number of logical update / ticks per second.
-    constexpr uint32 UPDATE_FPS = 40;
 }
 
 #endif // __cplusplus
+
+enum
+{
+    // The game update inverval in milliseconds, (1000 / 40fps) = 25ms
+    GAME_UPDATE_TIME_MS = 25,
+    // The number of logical update / ticks per second.
+    GAME_UPDATE_FPS = 40,
+    // The maximum amount of updates in case rendering is slower
+    GAME_MAX_UPDATES = 4,
+    // The maximum threshold to advance.
+    GAME_UPDATE_MAX_THRESHOLD = GAME_UPDATE_TIME_MS * GAME_MAX_UPDATES,
+};
+
 
 #ifdef __cplusplus
 extern "C"
@@ -127,6 +138,7 @@ extern "C"
     bool context_is_input_active();
     void context_trigger_resize();
     void context_set_fullscreen_mode(sint32 mode);
+    void context_recreate_window();
     sint32 context_get_resolutions(struct Resolution * * outResolutions);
     sint32 context_get_width();
     sint32 context_get_height();

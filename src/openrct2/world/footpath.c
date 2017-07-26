@@ -20,6 +20,7 @@
 #include "../network/network.h"
 #include "../object_list.h"
 #include "../rct2.h"
+#include "../ride/station.h"
 #include "../ride/track.h"
 #include "../ride/track_data.h"
 #include "../util/util.h"
@@ -510,7 +511,7 @@ static money32 footpath_place_from_track(sint32 type, sint32 x, sint32 y, sint32
         return MONEY32_UNDEFINED;
     }
 
-    if (flags & GAME_COMMAND_FLAG_APPLY)
+    if ((flags & GAME_COMMAND_FLAG_APPLY) && !(flags & GAME_COMMAND_FLAG_GHOST))
         footpath_interrupt_peeps(x, y, z * 8);
 
     gFootpathPrice = 0;
@@ -1193,7 +1194,7 @@ static void loc_6A6D7E(
                     }
 
                     const uint8 trackType = mapElement->properties.track.type;
-                    const uint8 trackSequence = mapElement->properties.track.sequence & 0x0F;
+                    const uint8 trackSequence = mapElement->properties.track.sequence & MAP_ELEM_TRACK_SEQUENCE_SEQUENCE_MASK;
                     if (!(FlatRideTrackSequenceProperties[trackType][trackSequence] & TRACK_SEQUENCE_FLAG_CONNECTS_TO_PATH)) {
                         return;
                     }
@@ -1251,7 +1252,7 @@ static void loc_6A6D7E(
                 footpath_queue_chain_push(mapElement->properties.path.ride_index);
             }
         }
-        if (!(flags & 0x48)) {
+        if (!(flags & (GAME_COMMAND_FLAG_GHOST | GAME_COMMAND_FLAG_ALLOW_DURING_PAUSED))) {
             footpath_interrupt_peeps(x, y, mapElement->base_height * 8);
         }
         map_invalidate_element(x, y, mapElement);
@@ -1285,7 +1286,7 @@ static void loc_6A6C85(
             return;
         }
         const uint8 trackType = mapElement->properties.track.type;
-        const uint8 trackSequence = mapElement->properties.track.sequence & 0x0F;
+        const uint8 trackSequence = mapElement->properties.track.sequence & MAP_ELEM_TRACK_SEQUENCE_SEQUENCE_MASK;
         if (!(FlatRideTrackSequenceProperties[trackType][trackSequence] & TRACK_SEQUENCE_FLAG_CONNECTS_TO_PATH)) {
             return;
         }
@@ -1500,13 +1501,13 @@ void footpath_update_queue_chains()
             continue;
         }
 
-        for (sint32 i = 0; i < RCT12_MAX_STATIONS_PER_RIDE; i++) {
-            if (ride->entrances[i] == 0xFFFF) {
+        for (sint32 i = 0; i < MAX_STATIONS; i++) {
+            if (ride->entrances[i].xy == RCT_XY8_UNDEFINED) {
                 continue;
             }
 
-            uint8 x = ride->entrances[i] & 0xFF;
-            uint8 y = ride->entrances[i] >> 8;
+            uint8 x = ride->entrances[i].x;
+            uint8 y = ride->entrances[i].y;
             uint8 z = ride->station_heights[i];
 
             rct_map_element *mapElement = map_get_first_element_at(x, y);

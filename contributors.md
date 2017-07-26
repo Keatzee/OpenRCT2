@@ -11,6 +11,13 @@ Includes all git commit authors. Aliases are GitHub user names.
 * (zsilencer) - Developer
 * Richard Jenkins (rwjuk) - Developer, issue management
 
+## Long term contributors
+The following people are not part of the project team, but have been contributing for a long time.
+* Hielke Morsink (Broxzier)
+* Matte Andersson (Nubbie)
+* Kenton Boadway (PFCKrutonium)
+* (wolfreak99)
+
 ## Implementation (RCT2)
 * Ted John (IntelOrca)
 * Duncan Frost (duncanspumpkin)
@@ -33,6 +40,7 @@ Includes all git commit authors. Aliases are GitHub user names.
 * Inseok Lee (dlunch) - Original command line
 * Lewis Fox (LRFLEW) - Misc.
 * Marijn van der Werf (marijnvdwerf) - Drawing, misc.
+* Hielke Morsink (Broxzier) - Tile inspector, heightmap loader, misc.
 
 ## Additional implementation (OpenRCT2)
 * (atmaxinger) - User configuration
@@ -49,13 +57,12 @@ Includes all git commit authors. Aliases are GitHub user names.
 * Robert Jordan (trigger-death) - UI theming, title sequence editor, misc.
 * Aaron van Geffen (AaronVanGeffen) - scenario select screen, font detection, misc.
 * Michał Janiszewski (janisozaur) - Linux port, crash handling, security, misc.
-* Kelson Blakewood (spacek531) - title sequence for 0.0.4 and 0.0.5/0.0.6
+* Kelson Blakewood (spacek531) - title sequences for 0.0.4, 0.0.5/0.0.6/0.0.7, and 0.1.0; title sequences using milliseconds
 * Hugo Wallenburg (Goddesen) - Misc.
 * Matte Andersson (Nubbie) - Misc, UX
 * Daniel Trujillo Viedma (gDanix) - Custom currency.
 * Niels NTG Poldervaart (Niels-NTG) - Misc.
 * (zaxcav) - Improvements to original pathfinding algorithm.
-* Hielke Morsink (Broxzier) - Tile inspector, heightmap loader, misc.
 * Joël Troch (JoelTroch) - Keyboard shortcuts for ride construction.
 * Thomas Delebo (delebota) - Misc.
 * Brian Callahan (ibara) - OpenBSD port.
@@ -81,6 +88,8 @@ Includes all git commit authors. Aliases are GitHub user names.
 * Richard Jenkins (rwjuk)
 * (ceeac)
 * Matthias Moninger (Zeh Matt)
+* Tomas Dittmann (Chaosmeister)
+* William Wallace (Willox)
 
 ## Toolchain
 * (Balletie) - macOS

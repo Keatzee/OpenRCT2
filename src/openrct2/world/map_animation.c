@@ -184,7 +184,7 @@ static bool map_animation_invalidate_small_scenery(sint32 x, sint32 y, sint32 ba
             continue;
 
         sceneryEntry = get_small_scenery_entry(mapElement->properties.scenery.type);
-        if (sceneryEntry->small_scenery.flags & (SMALL_SCENERY_FLAG12 | SMALL_SCENERY_FLAG13 | SMALL_SCENERY_FLAG15 | SMALL_SCENERY_FLAG16)) {
+        if (sceneryEntry->small_scenery.flags & (SMALL_SCENERY_FLAG_FOUNTAIN_SPRAY_1 | SMALL_SCENERY_FLAG_FOUNTAIN_SPRAY_4 | SMALL_SCENERY_FLAG_SWAMP_GOO | SMALL_SCENERY_FLAG_HAS_FRAME_OFFSETS)) {
             map_invalidate_tile_zoom1(x, y, mapElement->base_height * 8, mapElement->clearance_height * 8);
             return false;
         }
@@ -312,6 +312,8 @@ static bool map_animation_invalidate_track_onridephoto(sint32 x, sint32 y, sint3
 
     mapElement = map_get_first_element_at(x >> 5, y >> 5);
     do {
+        if (mapElement == NULL)
+            break;
         if (mapElement->base_height != baseZ)
             continue;
         if (map_element_get_type(mapElement) != MAP_ELEMENT_TYPE_TRACK)

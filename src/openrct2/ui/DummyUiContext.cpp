@@ -33,6 +33,7 @@ namespace OpenRCT2 { namespace Ui
     public:
         void CreateWindow() override { }
         void CloseWindow() override { }
+        void RecreateWindow() override { }
         void * GetWindow() override { return nullptr; }
         sint32 GetWidth() override { return 0; }
         sint32 GetHeight() override { return 0; }
@@ -63,7 +64,7 @@ namespace OpenRCT2 { namespace Ui
         // Drawing
         Drawing::IDrawingEngine * CreateDrawingEngine(Drawing::DRAWING_ENGINE_TYPE type) override
         {
-            return new X8DrawingEngine();
+            return new X8DrawingEngine(this);
         }
 
         // Text input

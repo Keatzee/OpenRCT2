@@ -152,6 +152,16 @@ void S6Exporter::Save(IStream * stream, bool isScenario)
 
 void S6Exporter::Export()
 {
+    sint32 spatial_cycle = check_for_spatial_index_cycles(false);
+    sint32 regular_cycle = check_for_sprite_list_cycles(false);
+    sint32 disjoint_sprites_count = fix_disjoint_sprites();
+    openrct2_assert(spatial_cycle == -1, "Sprite cycle exists in spatial list %d", spatial_cycle);
+    openrct2_assert(regular_cycle == -1, "Sprite cycle exists in regular list %d", regular_cycle);
+    // This one is less harmful, no need to assert for it ~janisozaur
+    if (disjoint_sprites_count > 0)
+    {
+        log_error("Found %d disjoint null sprites", disjoint_sprites_count);
+    }
     _s6.info = gS6Info;
     uint32 researchedTrackPiecesA[128];
     uint32 researchedTrackPiecesB[128];
@@ -183,9 +193,7 @@ void S6Exporter::Export()
     // Might as well reset them in here to zero out the space and improve
     // compression ratios. Especially useful for multiplayer servers that
     // use zlib on the sent stream.
-    {
-        reset_empty_sprites();
-    }
+    sprite_clear_all_unused();
     for (sint32 i = 0; i < MAX_SPRITES; i++)
     {
         memcpy(&_s6.sprites[i], get_sprite(i), sizeof(rct_sprite));
@@ -334,7 +342,7 @@ void S6Exporter::Export()
         _s6.park_entrance_z[i]         = gParkEntrances[i].z;
         _s6.park_entrance_direction[i] = gParkEntrances[i].direction;
     }
-    safe_strcpy(_s6.scenario_filename, _scenarioFileName, sizeof(_s6.scenario_filename));
+    safe_strcpy(_s6.scenario_filename, gScenarioFileName, sizeof(_s6.scenario_filename));
     memcpy(_s6.saved_expansion_pack_names, gScenarioExpansionPacks, sizeof(_s6.saved_expansion_pack_names));
     memcpy(_s6.banners, gBanners, sizeof(_s6.banners));
     memcpy(_s6.custom_strings, gUserStrings, sizeof(_s6.custom_strings));
@@ -395,7 +403,7 @@ void S6Exporter::Export()
     _s6.wide_path_tile_loop_y = gWidePathTileLoopY;
     // pad_13CE778
 
-    String::Set(_s6.scenario_filename, sizeof(_s6.scenario_filename), _scenarioFileName);
+    String::Set(_s6.scenario_filename, sizeof(_s6.scenario_filename), gScenarioFileName);
 
     if (RemoveTracklessRides)
     {
@@ -448,8 +456,6 @@ extern "C"
         }
 
         map_reorganise_elements();
-        sprite_clear_all_unused();
-
         viewport_set_saved_view();
 
         bool result     = false;

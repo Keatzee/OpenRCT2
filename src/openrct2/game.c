@@ -53,6 +53,7 @@
 #include "world/Climate.h"
 #include "world/entrance.h"
 #include "world/footpath.h"
+#include "world/map.h"
 #include "world/map_animation.h"
 #include "world/park.h"
 #include "world/scenery.h"
@@ -62,7 +63,6 @@
 #define NUMBER_OF_AUTOSAVES_TO_KEEP 9
 
 uint16 gTicksSinceLastUpdate;
-uint32 gLastTickCount;
 uint8 gGamePaused = 0;
 sint32 gGameSpeed = 1;
 float gDayNightCycle = 0;
@@ -294,8 +294,8 @@ void game_update()
     if (gGameSpeed > 1) {
         numUpdates = 1 << (gGameSpeed - 1);
     } else {
-        numUpdates = gTicksSinceLastUpdate / 31;
-        numUpdates = clamp(1, numUpdates, 4);
+        numUpdates = gTicksSinceLastUpdate / GAME_UPDATE_TIME_MS;
+        numUpdates = clamp(1, numUpdates, GAME_MAX_UPDATES);
     }
 
     if (network_get_mode() == NETWORK_MODE_CLIENT && network_get_status() == NETWORK_STATUS_CONNECTED && network_get_authstatus() == NETWORK_AUTH_OK) {
@@ -1025,8 +1025,8 @@ void game_convert_strings_to_rct2(rct_s6_data *s6)
 
 // OpenRCT2 workaround to recalculate some values which are saved redundantly in the save to fix corrupted files.
 // For example recalculate guest count by looking at all the guests instead of trusting the value in the file.
-void game_fix_save_vars() {
-
+void game_fix_save_vars()
+{
     // Recalculates peep count after loading a save to fix corrupted files
     rct_peep* peep;
     uint16 spriteIndex;
@@ -1041,6 +1041,7 @@ void game_fix_save_vars() {
     peep_sort();
 
     // Fixes broken saves where a surface element could be null
+    // and broken saves with incorrect invisible map border tiles
     for (sint32 y = 0; y < 256; y++) {
         for (sint32 x = 0; x < 256; x++) {
             rct_map_element *mapElement = map_get_surface_element_at(x, y);
@@ -1053,6 +1054,15 @@ void game_fix_save_vars() {
                     log_error("Unable to fix: Map element limit reached.");
                     return;
                 }
+            }
+
+            // Fix the invisible border tiles.
+            // At this point, we can be sure that mapElement is not NULL.
+            if (x == 0 || x == gMapSize - 1 || y == 0 || y == gMapSize -1)
+            {
+                mapElement->base_height = 2;
+                mapElement->clearance_height = 2;
+                mapElement->properties.surface.slope = 0;
             }
         }
     }
@@ -1082,6 +1092,10 @@ void game_fix_save_vars() {
 
     // Fix banner list pointing to NULL map elements
     banner_reset_broken_index();
+
+    // Fix invalid vehicle sprite sizes, thus preventing visual corruption of sprites
+    fix_invalid_vehicle_sprite_sizes();
+
 }
 
 /**
@@ -1128,10 +1142,15 @@ bool game_load_save(const utf8 *path)
     }
 }
 
-void handle_park_load_failure(const ParkLoadResult * result, const utf8 * path)
+void handle_park_load_failure_with_title_opt(const ParkLoadResult * result, const utf8 * path, bool loadTitleFirst)
 {
     if (ParkLoadResult_GetError(result) == PARK_LOAD_ERROR_MISSING_OBJECTS)
     {
+        // This option is used when loading parks from the command line
+        // to ensure that the title sequence loads before the window
+        if (loadTitleFirst) {
+            title_load();
+        }
         // The path needs to be duplicated as it's a const here
         // which the window function doesn't like
         window_object_load_error_open(strndup(path, strnlen(path, MAX_PATH)),
@@ -1142,6 +1161,11 @@ void handle_park_load_failure(const ParkLoadResult * result, const utf8 * path)
         // the current park state will be corrupted so just go back to the title screen.
         title_load();
     }
+}
+
+void handle_park_load_failure(const ParkLoadResult * result, const utf8 * path)
+{
+    handle_park_load_failure_with_title_opt(result, path, false);
 }
 
 void game_load_init()

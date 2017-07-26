@@ -707,8 +707,12 @@ void viewport_paint(rct_viewport* viewport, rct_drawpixelinfo* dpi, sint16 left,
     dpi1.pitch = (dpi->width + dpi->pitch) - (width >> viewport->zoom);
     dpi1.zoom_level = viewport->zoom;
 
+    // make sure, the compare operation is done in sint16 to avoid the loop becoming an infiniteloop.
+    // this as well as the [x += 32] in the loop causes signed integer overflow -> undefined behaviour.
+    sint16 rightBorder = dpi1.x + dpi1.width;
+
     // Splits the area into 32 pixel columns and renders them
-    for (x = floor2(dpi1.x, 32); x < dpi1.x + dpi1.width; x += 32) {
+    for (x = floor2(dpi1.x, 32); x < rightBorder; x += 32) {
         rct_drawpixelinfo dpi2 = dpi1;
         if (x >= dpi2.x) {
             sint16 leftPitch = x - dpi2.x;
@@ -1035,7 +1039,7 @@ static bool sub_679236_679662_679B0D_679FF1(uint32 ebx, rct_g1_element *image, u
         return false;
     }
 
-    if (ebx & 0x20000000) {
+    if (ebx & IMAGE_TYPE_REMAP) {
         uint8 *ebx_palette = unk_9ABDA4;
 
         uint8 al = *esi;
@@ -1044,7 +1048,7 @@ static bool sub_679236_679662_679B0D_679FF1(uint32 ebx, rct_g1_element *image, u
         return (al2 != 0);
     }
 
-    if (ebx & 0x40000000) {
+    if (ebx & IMAGE_TYPE_TRANSPARENT) {
         return false;
     }
 
@@ -1298,10 +1302,10 @@ static bool sub_679074(rct_drawpixelinfo *dpi, sint32 imageId, sint16 x, sint16 
 static bool sub_679023(rct_drawpixelinfo *dpi, sint32 imageId, sint32 x, sint32 y)
 {
     imageId &= 0xBFFFFFFF;
-    if (imageId & 0x20000000) {
-        gUnkEDF81C = 0x20000000;
+    if (imageId & IMAGE_TYPE_REMAP) {
+        gUnkEDF81C = IMAGE_TYPE_REMAP;
         sint32 index = (imageId >> 19) & 0x7F;
-        if (imageId & 0x80000000) {
+        if (imageId & IMAGE_TYPE_REMAP_2_PLUS) {
             index &= 0x1F;
         }
         sint32 g1Index = palette_to_g1_offset[index];
@@ -1478,7 +1482,7 @@ static rct_viewport *viewport_find_from_point(sint32 screenX, sint32 screenY)
 void screen_get_map_xy(sint32 screenX, sint32 screenY, sint16 *x, sint16 *y, rct_viewport **viewport) {
     sint16 my_x, my_y;
     sint32 interactionType;
-    rct_viewport *myViewport;
+    rct_viewport *myViewport = NULL;
     get_map_coordinates_from_pos(screenX, screenY, VIEWPORT_INTERACTION_MASK_TERRAIN, &my_x, &my_y, &interactionType, NULL, &myViewport);
     if (interactionType == VIEWPORT_INTERACTION_ITEM_NONE) {
         *x = 0x8000;

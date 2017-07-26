@@ -3764,13 +3764,13 @@ STR_5420    :Otočit{MOVE_X}{87}{COMMA16}
 STR_5421    :Přiblížit
 STR_5422    :Přiblížit{MOVE_X}{87}{COMMA16}
 STR_5423    :Čekat
-STR_5424    :Čekat{MOVE_X}{87}{COMMA16}
+STR_5424    :Čekat{MOVE_X}{87}{UINT16}
 STR_5425    :Restart
 STR_5426    :Konec
 STR_5427    :Souřadnice:
 STR_5428    :Počet otočení proti směru hod.ruč.:
 STR_5429    :Úroveň přiblížení:
-STR_5430    :Délka čekání (v sekundách):
+STR_5430    :Délka čekání (v milisekundách):
 STR_5431    :Uložená hra k načtení:
 STR_5432    :Příkaz:
 STR_5433    :Herní sekvence
@@ -4432,6 +4432,17 @@ STR_6119    :Levná horská dráha, kterou lze snadno postavit - má však omeze
 STR_6120    :{BABYBLUE}Nové vozy dostupné pro {STRINGID}:{NEWLINE}{STRINGID}
 STR_6121    :{SMALLFONT}{BLACK}Zajistí práva pro všechny pozemky na mapě
 STR_6122    :Ve scénáři není dostatečný počet horských drah!
+STR_6123    :Nepodařilo se načíst objekty parku
+STR_6124    :Název objektu
+STR_6125    :Typ objektu
+STR_6126    :Neznámý typ
+STR_6127    :Soubor: {STRING}
+STR_6128    :Soubor se nepodařilo načíst, protože využívá objekty, z nichž některé jsou porušené nebo zcela chybí. Seznam takových objektů je k dispozici níže.
+STR_6129    :Kopírovat vybrané do schránky
+STR_6130    :Kopírovat celý seznam do schránky
+STR_6131    :Zdroj objektu
+STR_6132    :Ignorovat nutnost výzkumu
+STR_6133    :{SMALLFONT}{BLACK}Povolí přístup k atrakcím a kulisám, které ještě nebyly vyzkoumány
 
 ###############################################################################
 ## RCT2 Objects

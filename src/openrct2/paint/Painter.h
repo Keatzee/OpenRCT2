@@ -14,32 +14,41 @@
  *****************************************************************************/
 #pragma endregion
 
-#pragma once
+#include <time.h>
+#include "../common.h"
 
-#ifdef __cplusplus
-extern "C"
+struct rct_drawpixelinfo;
+
+namespace OpenRCT2
 {
-#endif
+    namespace Drawing
+    {
+        interface IDrawingEngine;
+    }
 
-#include "../rct2.h"
-#include "drawing.h"
+    namespace Ui
+    {
+        interface IUiContext;
+    }
 
-extern rct_string_id DrawingEngineStringIds[3];
+    namespace Paint
+    {
+        class Painter final
+        {
+        private:
+            Ui::IUiContext * const _uiContext;
 
-sint32 drawing_engine_get_type();
-bool drawing_engine_requires_new_window(sint32 srcEngine, sint32 dstEngine);
-void drawing_engine_init();
-void drawing_engine_resize();
-void drawing_engine_set_palette(const rct_palette_entry * colours);
-void drawing_engine_draw();
-void drawing_engine_copy_rect(sint32 x, sint32 y, sint32 width, sint32 height, sint32 dx, sint32 dy);
-void drawing_engine_dispose();
+            time_t  _lastSecond = 0;
+            sint32  _currentFPS = 0;
+            sint32  _frames     = 0;
 
-rct_drawpixelinfo * drawing_engine_get_dpi();
-bool drawing_engine_has_dirty_optimisations();
-void drawing_engine_invalidate_image(uint32 image);
-void drawing_engine_set_fps_uncapped(bool uncapped);
+        public:
+            Painter(Ui::IUiContext * uiContext);
+            void Paint(Drawing::IDrawingEngine * de);
 
-#ifdef __cplusplus
+        private:
+            void PaintFPS(rct_drawpixelinfo * dpi);
+            void MeasureFPS();
+        };
+    }
 }
-#endif

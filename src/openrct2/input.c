@@ -1177,7 +1177,7 @@ void input_state_widget_pressed(sint32 x, sint32 y, sint32 state, rct_widgetinde
             _clickRepeatTicks++;
 
             // Handle click repeat
-            if (_clickRepeatTicks >= 16 && (_clickRepeatTicks & 3) != 0) {
+            if (_clickRepeatTicks >= 16 && (_clickRepeatTicks & 3) == 0) {
                 if (w->hold_down_widgets & (1ULL << widgetIndex)) {
                     window_event_mouse_down_call(w, widgetIndex);
                 }
@@ -1207,7 +1207,7 @@ void input_state_widget_pressed(sint32 x, sint32 y, sint32 state, rct_widgetinde
                         goto dropdown_cleanup;
                     }
 
-                    if (dropdown_index < 64 && gDropdownItemsDisabled & (1ULL << dropdown_index)) {
+                    if (dropdown_index < DROPDOWN_ITEMS_MAX_SIZE && dropdown_is_disabled(dropdown_index)) {
                         goto dropdown_cleanup;
                     }
 
@@ -1344,7 +1344,7 @@ void input_state_widget_pressed(sint32 x, sint32 y, sint32 state, rct_widgetinde
             window_tooltip_show(colourTooltips[dropdown_index], x, y);
         }
 
-        if (dropdown_index < 64 && gDropdownItemsDisabled & (1ULL << dropdown_index)) {
+        if (dropdown_index < DROPDOWN_ITEMS_MAX_SIZE && dropdown_is_disabled(dropdown_index)) {
             return;
         }
 

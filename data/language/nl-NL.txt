@@ -887,7 +887,7 @@ STR_0884    :Landschap laden
 STR_0885    :Landschap opslaan
 STR_0886    :Spel afsluiten
 STR_0887    :Scenariobewerker afsluiten
-STR_0888    :Achtbaanontwerper afsluiten
+STR_0888    :Baanontwerper afsluiten
 STR_0889    :Baanontwerpbeheer afsluiten
 STR_0890    :<removed string - do not use>
 STR_0891    :Screenshot
@@ -3209,7 +3209,7 @@ STR_3203    :Uitvindingen instellen
 STR_3204    :Opties selecteren
 STR_3205    :Doelstelling selecteren
 STR_3206    :Scenario opslaan
-STR_3207    :Achtbaanontwerper
+STR_3207    :Baanontwerper
 STR_3208    :Baanontwerpbeheer
 STR_3209    :Terug naar de vorige stap:
 STR_3210    :Verder naar de volgende stap:
@@ -3337,7 +3337,7 @@ STR_3331    :Pad van de parkingang naar de rand van de kaart is incompleet of te
 STR_3332    :Parkingang staat achterstevoren of heeft geen pad naar de rand van de kaart
 STR_3333    :Plug-inobjecten meeleveren in opgeslagen spellen
 STR_3334    :{SMALLFONT}{BLACK}Selecteer of toegevoegde (niet-standaard) objecten in opgeslagen spellen en scenario's moeten worden meegeleverd, zodat ze geopend kunnen worden door iemand die deze objecten nog niet heeft
-STR_3335    :Achtbaanontwerper - Attractietypes en -voertuigen selecteren
+STR_3335    :Baanontwerper - Attractietypes en -voertuigen selecteren
 STR_3336    :Baanontwerpbeheer - Attractietype selecteren
 STR_3337    :<not used anymore>
 STR_3338    :{BLACK}Eigen ontwerp
@@ -3346,7 +3346,7 @@ STR_3340    :{BLACK}{COMMA16} ontwerpen beschikbaar, of maak een eigen ontwerp
 STR_3341    :{SMALLFONT}{BLACK}Hulpmiddelen
 STR_3342    :Scenariobewerker
 STR_3343    :Opgeslagen spel omzetten naar scenario
-STR_3344    :Achtbaanontwerper
+STR_3344    :Baanontwerper
 STR_3345    :Baanontwerpbeheer
 STR_3346    :Kan baanontwerp niet opslaan
 STR_3347    :Attractie is te groot, bevat teveel elementen of het decor is te ver verspreid
@@ -3757,13 +3757,13 @@ STR_5420    :Draai{MOVE_X}{87}{COMMA16}
 STR_5421    :Zoom
 STR_5422    :Zoom{MOVE_X}{87}{COMMA16}
 STR_5423    :Wacht
-STR_5424    :Wacht{MOVE_X}{87}{COMMA16}
+STR_5424    :Wacht{MOVE_X}{87}{UINT16}
 STR_5425    :Herstarten
 STR_5426    :Einde
 STR_5427    :Coördinaten:
 STR_5428    :Aant. draaiingen tegen de klok:
 STR_5429    :Zoomniveau:
-STR_5430    :Te wachten seconden:
+STR_5430    :Te wachten milliseconden:
 STR_5431    :Te laden opgeslagen spel:
 STR_5432    :Commando:
 STR_5433    :Titelpresentaties
@@ -4424,6 +4424,17 @@ STR_6119    :Goedkoop en makkelijk te bouwen, maar kan niet zo hoog gebouwd word
 STR_6120    :{BABYBLUE}Nieuw voertuig beschikbaar voor {STRINGID}:{NEWLINE}{STRINGID}
 STR_6121    :{SMALLFONT}{BLACK}Neem al het land op de kaart in bezit
 STR_6122    :Er zijn te weinig achtbanen in het scenario!
+STR_6123    :Fout bij het laden van objecten in het park
+STR_6124    :Objectnaam
+STR_6125    :Objecttype
+STR_6126    :Onbekend type
+STR_6127    :Bestand: {STRING}
+STR_6128    :Het bestand kon niet geladen worden omdat sommige objecten waar het naar verwijst beschadigd zijn of ontbreken. Hieronder staat een lijst van deze objecten.
+STR_6129    :Selectie naar klembord kopiëren
+STR_6130    :Hele lijst naar klembord kopiëren
+STR_6131    :Afkomst
+STR_6132    :Uitvindingsstatus negeren
+STR_6133    :{SMALLFONT}{BLACK}Maakt attracties en decor beschikbaar die nog niet zijn uitgevonden.
 
 #############
 # Scenarios #
