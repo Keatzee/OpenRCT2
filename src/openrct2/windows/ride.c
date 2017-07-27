@@ -1483,9 +1483,10 @@ static rct_window *window_ride_open(sint32 rideIndex)
     w = window_create_auto_pos(316, 207, window_ride_page_events[0], WC_RIDE, WF_10 | WF_RESIZABLE);
     w->widgets = window_ride_page_widgets[WINDOW_RIDE_PAGE_MAIN];
     w->enabled_widgets = window_ride_page_enabled_widgets[WINDOW_RIDE_PAGE_MAIN];
+    w->hold_down_widgets = window_ride_page_hold_down_widgets[WINDOW_RIDE_PAGE_MAIN];
     w->number = rideIndex;
 
-    w->page = 0;
+    w->page = WINDOW_RIDE_PAGE_MAIN;
     w->var_48C = 0;
     w->frame_no = 0;
     w->list_information_type = 0;
@@ -1602,7 +1603,7 @@ rct_window *window_ride_open_track(rct_map_element *mapElement)
         (TrackSequenceProperties[mapElement->properties.track.type][0] & TRACK_SEQUENCE_FLAG_ORIGIN)
     ) {
         // Open ride window in station view
-        return window_ride_open_station(rideIndex, map_get_station(mapElement));
+        return window_ride_open_station(rideIndex, map_element_get_station(mapElement));
     } else {
         // Open ride window in overview mode.
         return window_ride_main_open(rideIndex);
@@ -4103,7 +4104,7 @@ static void window_ride_set_track_colour_scheme(rct_window *w, sint32 x, sint32 
         return;
 
     z = mapElement->base_height * 8;
-    direction = mapElement->type & MAP_ELEMENT_DIRECTION_MASK;
+    direction = map_element_get_direction(mapElement);
     sub_6C683D(&x, &y, &z, direction, mapElement->properties.track.type, newColourScheme, NULL, 4);
 }
 

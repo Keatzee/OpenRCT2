@@ -1741,7 +1741,7 @@ static void window_ride_construction_construct(rct_window *w)
             _currentTrackBeginX = next_track.x;
             _currentTrackBeginY = next_track.y;
             _currentTrackBeginZ = z;
-            _currentTrackPieceDirection = next_track.element->type & MAP_ELEMENT_DIRECTION_MASK;
+            _currentTrackPieceDirection = map_element_get_direction(next_track.element);
             _currentTrackPieceType = next_track.element->properties.track.type;
             _currentTrackSelectionFlags = 0;
             _rideConstructionArrowPulseTime = 0;
@@ -1818,7 +1818,7 @@ static void window_ride_construction_mouseup_demolish(rct_window* w)
     else if (track_block_get_next(&inputElement, &outputElement, &z, &direction)) {
         x = outputElement.x;
         y = outputElement.y;
-        direction = outputElement.element->type & MAP_ELEMENT_DIRECTION_MASK;
+        direction = map_element_get_direction(outputElement.element);
         type = outputElement.element->properties.track.type;
         gGotoStartPlacementMode = false;
     } else {
@@ -2425,7 +2425,7 @@ static void sub_6CBCE2(
         _tempTrackMapElement.base_height = baseZ;
         _tempTrackMapElement.clearance_height = clearanceZ;
         _tempTrackMapElement.properties.track.type = trackType;
-        _tempTrackMapElement.properties.track.sequence = trackBlock->index;
+        map_element_set_track_sequence(&_tempTrackMapElement, trackBlock->index);
         _tempTrackMapElement.properties.track.colour = (edx & 0x20000) ? 4 : 0;
         _tempTrackMapElement.properties.track.ride_index = rideIndex;
 
@@ -2477,7 +2477,7 @@ void window_ride_construction_update_active_elements()
         if (!sub_6C683D(&x, &y, &z, _currentTrackPieceDirection & 3, _currentTrackPieceType, 0, &mapElement, 0)) {
             _selectedTrackType = mapElement->properties.track.type;
             if (track_element_has_speed_setting(mapElement->properties.track.type))
-                _currentBrakeSpeed2 = (mapElement->properties.track.sequence >> 4) << 1;
+                _currentBrakeSpeed2 = map_element_get_brake_booster_speed(mapElement);
             _currentSeatRotationAngle = mapElement->properties.track.colour >> 4;
         }
     }

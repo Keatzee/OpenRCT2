@@ -448,7 +448,7 @@ private:
             switch (map_element_get_type(mapElement)) {
             case MAP_ELEMENT_TYPE_PATH:
             {
-                uint8 pathColour = mapElement->type & 3;
+                uint8 pathColour = map_element_get_direction(mapElement);
                 uint8 pathType = (mapElement->properties.path.type & 0xF0) >> 4;
 
                 pathType = (pathType << 2) | pathColour;
@@ -2198,9 +2198,8 @@ private:
             {
                 switch (map_element_get_type(mapElement)) {
                 case MAP_ELEMENT_TYPE_SCENERY:
-                    colour = RCT1::GetColour(mapElement->properties.scenery.colour_1 & 0x1F);
-                    mapElement->properties.scenery.colour_1 &= 0xE0;
-                    mapElement->properties.scenery.colour_1 |= colour;
+                    colour = RCT1::GetColour(scenery_small_get_primary_colour(mapElement));
+                        scenery_small_set_primary_colour(mapElement, colour);
 
                     // Copied from [rct2: 0x006A2956]
                     switch (mapElement->properties.scenery.type) {
@@ -2209,7 +2208,7 @@ private:
                     case 168: // TGE3 (Geometric Sculpture)
                     case 170: // TGE4 (Geometric Sculpture)
                     case 171: // TGE5 (Geometric Sculpture)
-                        mapElement->properties.scenery.colour_2 = COLOUR_WHITE;
+                        scenery_small_set_secondary_colour(mapElement, COLOUR_WHITE);
                         break;
                     }
                     break;
@@ -2475,7 +2474,7 @@ private:
             gParkEntrances[entranceIndex].x = it.x * 32;
             gParkEntrances[entranceIndex].y = it.y * 32;
             gParkEntrances[entranceIndex].z = element->base_height * 8;
-            gParkEntrances[entranceIndex].direction = element->type & 3;
+            gParkEntrances[entranceIndex].direction = map_element_get_direction(element);
             entranceIndex++;
         }
     }
@@ -2675,28 +2674,5 @@ extern "C"
     colour_t rct1_get_colour(colour_t colour)
     {
         return RCT1::GetColour(colour);
-    }
-
-    /**
-     * This function keeps a list of the preferred vehicle for every generic track
-     * type, out of the available vehicle types in the current game. It determines
-     * which picture is shown on the new ride tab and which train type is selected
-     * by default.
-     */
-    sint32 vehicle_preference_compare(uint8 rideType, const char * a, const char * b)
-    {
-        std::vector<const char *> rideEntryOrder = RCT1::GetPreferedRideEntryOrder(rideType);
-        for (const char * object : rideEntryOrder)
-        {
-            if (String::Equals(object, a, true))
-            {
-                return -1;
-            }
-            if (String::Equals(object, b, true))
-            {
-                return  1;
-            }
-        }
-        return 0;
     }
 }

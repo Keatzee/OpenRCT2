@@ -1023,8 +1023,8 @@ static sint32 track_design_place_maze(rct_track_td6 *td6, sint16 x, sint16 y, si
                 }
             }
 
-            if (map_element->properties.surface.terrain & MAP_ELEMENT_WATER_HEIGHT_MASK) {
-                sint16 water_height = map_element->properties.surface.terrain & MAP_ELEMENT_WATER_HEIGHT_MASK;
+            if (map_get_water_height(map_element) > 0) {
+                sint16 water_height = map_get_water_height(map_element);
                 water_height *= 16;
                 if (water_height > map_height) {
                     map_height = water_height;
@@ -1164,7 +1164,7 @@ static bool track_design_place_ride(rct_track_td6 *td6, sint16 x, sint16 y, sint
                     }
                 }
 
-                uint8 water_height = 16 * mapElement->properties.surface.terrain & MAP_ELEMENT_WATER_HEIGHT_MASK;
+                uint8 water_height = map_get_water_height(mapElement) * 16;
                 if (water_height > 0 && water_height > height) {
                     height = water_height;
                 }
@@ -1231,7 +1231,7 @@ static bool track_design_place_ride(rct_track_td6 *td6, sint16 x, sint16 y, sint
                     if (map_element_get_type(map_element) != MAP_ELEMENT_TYPE_TRACK) continue;
                     if (map_element->base_height != z) continue;
 
-                    sint32 stationIndex = (map_element->properties.track.sequence & MAP_ELEM_TRACK_SEQUENCE_STATION_INDEX_MASK) >> 4;
+                    sint32 stationIndex = map_element_get_station(map_element);
                     uint8 bl = 1;
                     if (_trackDesignPlaceOperation == PTD_OPERATION_GET_COST)
                     {

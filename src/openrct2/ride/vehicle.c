@@ -2340,7 +2340,7 @@ static bool try_add_synchronised_station(sint32 x, sint32 y, sint32 z)
      * to sync with adjacent stations, so it will return true.
      * Still to determine if a vehicle to sync can be identified. */
 
-    sint32 stationIndex = map_get_station(mapElement);
+    sint32 stationIndex = map_element_get_station(mapElement);
 
     rct_synchronised_vehicle *sv = _lastSynchronisedVehicle;
     sv->ride_id = rideIndex;
@@ -3484,7 +3484,7 @@ static void vehicle_update_arriving(rct_vehicle* vehicle)
         return;
     }
 
-    vehicle->current_station = map_get_station(mapElement);
+    vehicle->current_station = map_element_get_station(mapElement);
     vehicle->num_laps++;
 
     if (vehicle->sub_state != 0) {
@@ -4082,7 +4082,7 @@ static bool vehicle_is_boat_on_water(rct_vehicle *vehicle, sint32 x, sint32 y)
     rct_map_element *mapElement = map_get_first_element_at(x >> 5, y >> 5);
     do {
         if (map_element_get_type(mapElement) == MAP_ELEMENT_TYPE_SURFACE) {
-            sint32 waterZ = (mapElement->properties.surface.terrain & 0x1F) * 2;
+            sint32 waterZ = map_get_water_height(mapElement) * 2;
             if (z != waterZ) {
                 return true;
             }
@@ -6926,8 +6926,8 @@ static void loc_6DB481(rct_vehicle *vehicle)
  */
 static void vehicle_trigger_on_ride_photo(rct_vehicle *vehicle, rct_map_element *mapElement)
 {
-    mapElement->properties.track.sequence &= MAP_ELEM_TRACK_SEQUENCE_SEQUENCE_MASK;
-    mapElement->properties.track.sequence |= 0x30;
+    map_element_set_onride_photo_timeout(mapElement);
+
     map_animation_create(
         MAP_ANIMATION_TYPE_TRACK_ONRIDEPHOTO,
         vehicle->track_x,
@@ -7264,7 +7264,7 @@ static void sub_6DBF3E(rct_vehicle *vehicle)
     }
 
     if (_vehicleStationIndex == 0xFF) {
-        _vehicleStationIndex = (mapElement->properties.track.sequence & MAP_ELEM_TRACK_SEQUENCE_STATION_INDEX_MASK) >> 4;
+        _vehicleStationIndex = map_element_get_station(mapElement);
     }
 
     if (trackType == TRACK_ELEM_TOWER_BASE &&
@@ -7473,7 +7473,7 @@ loc_6DB41D:
     }
     vehicle->track_direction = regs.bl & 3;
     vehicle->track_type |= trackType << 2;
-    vehicle->brake_speed = (mapElement->properties.track.sequence >> 4) << 1;
+    vehicle->brake_speed = map_element_get_brake_booster_speed(mapElement);
     if (trackType == TRACK_ELEM_ON_RIDE_PHOTO) {
         vehicle_trigger_on_ride_photo(vehicle, mapElement);
     }
@@ -7848,7 +7848,7 @@ static bool vehicle_update_track_motion_backwards_get_new_track(rct_vehicle *veh
     direction &= 3;
     vehicle->track_type = trackType << 2;
     vehicle->track_direction |= direction;
-    vehicle->brake_speed = (mapElement->properties.track.sequence >> 4) << 1;
+    vehicle->brake_speed = map_element_get_brake_booster_speed(mapElement);
 
     // There are two bytes before the move info list
     uint16 trackTotalProgress = vehicle_get_move_info_size(vehicle->var_CD, vehicle->track_type);
@@ -8157,7 +8157,7 @@ loc_6DC476:
 
     vehicle->update_flags &= ~VEHICLE_UPDATE_FLAG_0;
     vehicle->track_type = (mapElement->properties.track.type << 2) | (direction & 3);
-    vehicle->var_CF = (mapElement->properties.track.sequence >> 4) << 1;
+    vehicle->var_CF = map_element_get_brake_booster_speed(mapElement);
     regs.ax = 0;
 
 loc_6DC743:

@@ -1170,7 +1170,7 @@ static money32 track_place(sint32 rideIndex, sint32 type, sint32 originX, sint32
         if ((rideTypeFlags & RIDE_TYPE_FLAG_TRACK_MUST_BE_ON_WATER) && !byte_9D8150) {
             mapElement = map_get_surface_element_at(x / 32, y / 32);
 
-            uint8 water_height = 2 * (mapElement->properties.surface.terrain & MAP_ELEMENT_WATER_HEIGHT_MASK);
+            uint8 water_height = map_get_water_height(mapElement) * 2;
             if (water_height == 0) {
                 gGameCommandErrorText = STR_CAN_ONLY_BUILD_THIS_ON_WATER;
                 return MONEY32_UNDEFINED;
@@ -1327,7 +1327,7 @@ static money32 track_place(sint32 rideIndex, sint32 type, sint32 originX, sint32
         }
         mapElement->type = map_type;
 
-        mapElement->properties.track.sequence = trackBlock->index;
+        map_element_set_track_sequence(mapElement, trackBlock->index);
         mapElement->properties.track.ride_index = rideIndex;
         mapElement->properties.track.type = type;
         mapElement->properties.track.colour = 0;
@@ -1350,7 +1350,7 @@ static money32 track_place(sint32 rideIndex, sint32 type, sint32 originX, sint32
             break;
         }
         if (track_element_has_speed_setting(type)) {
-            mapElement->properties.track.sequence = (properties_1 >> 1) << 4;
+            map_element_set_brake_booster_speed(mapElement, properties_1);
         }
         else {
             mapElement->properties.track.colour = properties_3 << 4;
@@ -1467,10 +1467,10 @@ static money32 track_remove(uint8 type, uint8 sequence, sint16 originX, sint16 o
         if (map_element_get_type(mapElement) != MAP_ELEMENT_TYPE_TRACK)
             continue;
 
-        if ((mapElement->type & MAP_ELEMENT_DIRECTION_MASK) != rotation)
+        if ((map_element_get_direction(mapElement)) != rotation)
             continue;
 
-        if ((mapElement->properties.track.sequence & MAP_ELEM_TRACK_SEQUENCE_SEQUENCE_MASK) != sequence)
+        if (map_element_get_track_sequence(mapElement) != sequence)
             continue;
 
         // Probably should add a check for ghost here as well!
@@ -1505,9 +1505,9 @@ static money32 track_remove(uint8 type, uint8 sequence, sint16 originX, sint16 o
 
     rct_ride* ride = get_ride(rideIndex);
     const rct_preview_track* trackBlock = get_track_def_from_ride(ride, type);
-    trackBlock += mapElement->properties.track.sequence & MAP_ELEM_TRACK_SEQUENCE_SEQUENCE_MASK;
+    trackBlock += map_element_get_track_sequence(mapElement);
 
-    uint8 originDirection = mapElement->type & MAP_ELEMENT_DIRECTION_MASK;
+    uint8 originDirection = map_element_get_direction(mapElement);
     switch (originDirection){
     case 0:
         originX -= trackBlock->x;
@@ -1569,10 +1569,10 @@ static money32 track_remove(uint8 type, uint8 sequence, sint16 originX, sint16 o
             if (map_element_get_type(mapElement) != MAP_ELEMENT_TYPE_TRACK)
                 continue;
 
-            if ((mapElement->type & MAP_ELEMENT_DIRECTION_MASK) != rotation)
+            if ((map_element_get_direction(mapElement)) != rotation)
                 continue;
 
-            if ((mapElement->properties.track.sequence & MAP_ELEM_TRACK_SEQUENCE_SEQUENCE_MASK) != trackBlock->index)
+            if (map_element_get_track_sequence(mapElement) != trackBlock->index)
                 continue;
 
             if (mapElement->properties.track.type != type)
@@ -1595,7 +1595,7 @@ static money32 track_remove(uint8 type, uint8 sequence, sint16 originX, sint16 o
             entranceDirections = TrackSequenceProperties[type][0];
         }
 
-        if (entranceDirections & TRACK_SEQUENCE_FLAG_ORIGIN && ((mapElement->properties.track.sequence & MAP_ELEM_TRACK_SEQUENCE_SEQUENCE_MASK) == 0)){
+        if (entranceDirections & TRACK_SEQUENCE_FLAG_ORIGIN && (map_element_get_track_sequence(mapElement) == 0)){
             if (!track_remove_station_element(x, y, z / 8, rotation, rideIndex, 0)) {
                 return MONEY32_UNDEFINED;
             }
@@ -1616,7 +1616,7 @@ static money32 track_remove(uint8 type, uint8 sequence, sint16 originX, sint16 o
         if (!(flags & GAME_COMMAND_FLAG_APPLY))
             continue;
 
-        if (entranceDirections & (1 << 4) && ((mapElement->properties.track.sequence & MAP_ELEM_TRACK_SEQUENCE_SEQUENCE_MASK) == 0)){
+        if (entranceDirections & (1 << 4) && (map_element_get_track_sequence(mapElement) == 0)){
             if (!track_remove_station_element(x, y, z / 8, rotation, rideIndex, GAME_COMMAND_FLAG_APPLY)) {
                 return MONEY32_UNDEFINED;
             }
@@ -2022,9 +2022,7 @@ void game_command_set_brakes_speed(sint32 *eax, sint32 *ebx, sint32 *ecx, sint32
         if (mapElement->properties.track.type != trackType)
             continue;
 
-        mapElement->properties.track.sequence =
-            (mapElement->properties.track.sequence & MAP_ELEM_TRACK_SEQUENCE_SEQUENCE_MASK) |
-            ((brakesSpeed >> 1) << 4);
+        map_element_set_brake_booster_speed(mapElement, brakesSpeed);
 
         break;
     } while (!map_element_is_last_for_tile(mapElement++));

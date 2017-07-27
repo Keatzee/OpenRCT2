@@ -202,10 +202,10 @@ static void ride_ratings_update_state_2()
 
         if (
             trackType == 255 ||
-            ((mapElement->properties.track.sequence & MAP_ELEM_TRACK_SEQUENCE_SEQUENCE_MASK) == 0 && trackType == mapElement->properties.track.type))
+            (map_element_get_track_sequence(mapElement) == 0 && trackType == mapElement->properties.track.type))
         {
             if (trackType == TRACK_ELEM_END_STATION) {
-                sint32 entranceIndex = map_get_station(mapElement);
+                sint32 entranceIndex = map_element_get_station(mapElement);
                 gRideRatingsCalcData.station_flags &= ~RIDE_RATING_STATION_FLAG_NO_ENTRANCE;
                 if (ride->entrances[entranceIndex].xy == RCT_XY8_UNDEFINED) {
                     gRideRatingsCalcData.station_flags |= RIDE_RATING_STATION_FLAG_NO_ENTRANCE;
@@ -470,7 +470,7 @@ static void ride_ratings_score_close_proximity_loops(rct_map_element *inputMapEl
         sint32 y = gRideRatingsCalcData.proximity_y;
         ride_ratings_score_close_proximity_loops_helper(inputMapElement, x, y);
 
-        sint32 direction = inputMapElement->type & MAP_ELEMENT_DIRECTION_MASK;
+        sint32 direction = map_element_get_direction(inputMapElement);
         x = gRideRatingsCalcData.proximity_x + TileDirectionDelta[direction].x;
         y = gRideRatingsCalcData.proximity_y + TileDirectionDelta[direction].y;
         ride_ratings_score_close_proximity_loops_helper(inputMapElement, x, y);
@@ -498,7 +498,7 @@ static void ride_ratings_score_close_proximity(rct_map_element *inputMapElement)
             if (mapElement->base_height * 8 == gRideRatingsCalcData.proximity_z) {
                 proximity_score_increment(PROXIMITY_SURFACE_TOUCH);
             }
-            sint32 waterHeight = (mapElement->properties.surface.terrain & 0x1F);
+            sint32 waterHeight = map_get_water_height(mapElement);
             if (waterHeight != 0) {
                 sint32 z = waterHeight * 16;
                 if (z <= gRideRatingsCalcData.proximity_z) {
@@ -541,7 +541,7 @@ static void ride_ratings_score_close_proximity(rct_map_element *inputMapElement)
         {
             sint32 trackType = mapElement->properties.track.type;
             if (trackType == TRACK_ELEM_LEFT_VERTICAL_LOOP || trackType == TRACK_ELEM_RIGHT_VERTICAL_LOOP) {
-                sint32 sequence = mapElement->properties.track.sequence & MAP_ELEM_TRACK_SEQUENCE_SEQUENCE_MASK;
+                sint32 sequence = map_element_get_track_sequence(mapElement);
                 if (sequence == 3 || sequence == 6) {
                     if (mapElement->base_height - inputMapElement->clearance_height <= 10) {
                         proximity_score_increment(PROXIMITY_THROUGH_VERTICAL_LOOP);
@@ -607,7 +607,7 @@ static void ride_ratings_score_close_proximity(rct_map_element *inputMapElement)
         } // switch map_element_get_type
     } while (!map_element_is_last_for_tile(mapElement++));
 
-    uint8 direction = inputMapElement->type & MAP_ELEMENT_DIRECTION_MASK;
+    uint8 direction = map_element_get_direction(inputMapElement);
     ride_ratings_score_close_proximity_in_direction(inputMapElement, (direction + 1) & 3);
     ride_ratings_score_close_proximity_in_direction(inputMapElement, (direction - 1) & 3);
     ride_ratings_score_close_proximity_loops(inputMapElement);

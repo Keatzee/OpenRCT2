@@ -684,7 +684,8 @@ static uint8 peep_assess_surroundings(sint16 centre_x, sint16 centre_y, sint16 c
 static void peep_update_hunger(rct_peep *peep){
     if (peep->hunger >= 3){
         peep->hunger -= 2;
-        peep->energy_target = min(peep->energy_target + 2, 255);
+        // Originally capped at 255 instead of 128 (the actual max value), like a mistake since most other values do max out at 255.
+        peep->energy_target = min(peep->energy_target + 2, PEEP_MAX_ENERGY);
         peep->bathroom = min(peep->bathroom + 1, 255);
     }
 }
@@ -982,7 +983,7 @@ static void sub_68F41A(rct_peep *peep, sint32 index)
 
                     if (thought_type != PEEP_THOUGHT_TYPE_NONE) {
                         peep_insert_new_thought(peep, thought_type, 0xFF);
-                        peep->happiness_target = min(255, peep->happiness_target + 45);
+                        peep->happiness_target = min(PEEP_MAX_HAPPINESS, peep->happiness_target + 45);
                     }
                 }
             }
@@ -1313,9 +1314,8 @@ static void sub_68F41A(rct_peep *peep, sint32 index)
     if (energy < 32)
         energy = 32;
 
-    /* This suggests 100% energy is 128. */
-    if (energy > 128)
-        energy = 128;
+    /* Previous code here suggested maximum energy is 128. */
+    energy = max(PEEP_MAX_ENERGY, energy);
 
     if (energy != peep->energy){
         peep->energy = energy;
@@ -2112,8 +2112,9 @@ static void peep_update_falling(rct_peep* peep){
             } // If a surface get the height and see if we are on it
             else if (map_element_get_type(map_element) == MAP_ELEMENT_TYPE_SURFACE) {
                 // If the surface is water check to see if we could be drowning
-                if (map_element->properties.surface.terrain & MAP_ELEMENT_WATER_HEIGHT_MASK) {
-                    sint32 height = (map_element->properties.surface.terrain & MAP_ELEMENT_WATER_HEIGHT_MASK) * 16;
+                if (map_get_water_height(map_element) > 0)
+                {
+                    sint32 height = map_get_water_height(map_element) * 16;
 
                     if (height - 4 >= peep->z && height < peep->z + 20) {
                         // Looks like we are drowning!
@@ -2392,7 +2393,7 @@ static void peep_go_to_ride_entrance(rct_peep* peep, rct_ride* ride){
 
     rct_map_element* map_element = ride_get_station_exit_element(ride, x, y, z);
 
-    uint8 direction = (map_element == NULL ? 0 : map_element->type & MAP_ELEMENT_DIRECTION_MASK);
+    uint8 direction = (map_element == NULL ? 0 : map_element_get_direction(map_element));
 
     x *= 32;
     y *= 32;
@@ -2653,7 +2654,7 @@ static void peep_update_ride_sub_state_1(rct_peep* peep){
 
         rct_map_element* map_element = ride_get_station_exit_element(ride, x, y, z);
 
-        uint8 direction_entrance = (map_element == NULL ? 0 : map_element->type & MAP_ELEMENT_DIRECTION_MASK);
+        uint8 direction_entrance = (map_element == NULL ? 0 : map_element_get_direction(map_element));
 
         if (ride->type == RIDE_TYPE_MAZE){
             peep->maze_last_edge = direction_entrance + 1;
@@ -2692,7 +2693,7 @@ static void peep_update_ride_sub_state_1(rct_peep* peep){
 
         map_element = ride_get_station_start_track_element(ride, peep->current_ride_station);
 
-        uint8 direction_track = (map_element == NULL ? 0 : map_element->type & MAP_ELEMENT_DIRECTION_MASK);
+        uint8 direction_track = (map_element == NULL ? 0 : map_element_get_direction(map_element));
 
         peep->var_37 = (direction_entrance << 2) | (direction_track << 4);
 
@@ -2730,14 +2731,14 @@ static void peep_update_ride_sub_state_1(rct_peep* peep){
 
         rct_map_element* map_element = ride_get_station_exit_element(ride, x, y, z);
 
-        uint8 direction_entrance = (map_element == NULL ? 0 : map_element->type & MAP_ELEMENT_DIRECTION_MASK);
+        uint8 direction_entrance = (map_element == NULL ? 0 : map_element_get_direction(map_element));
 
         x = ride->station_starts[peep->current_ride_station].x;
         y = ride->station_starts[peep->current_ride_station].y;
 
         map_element = ride_get_station_start_track_element(ride, peep->current_ride_station);
 
-        uint8 direction_track = (map_element == NULL ? 0 : map_element->type & MAP_ELEMENT_DIRECTION_MASK);
+        uint8 direction_track = (map_element == NULL ? 0 : map_element_get_direction(map_element));
 
         vehicle = GET_VEHICLE(ride->vehicles[peep->current_train]);
         ride_entry = get_ride_entry(vehicle->ride_subtype);
@@ -2939,7 +2940,7 @@ static void peep_update_ride_sub_state_2_rejoin_queue(rct_peep* peep, rct_ride* 
 
     rct_map_element* map_element = ride_get_station_exit_element(ride, x, y, z);
 
-    uint8 direction_entrance = (map_element == NULL ? 0 : map_element->type & MAP_ELEMENT_DIRECTION_MASK);
+    uint8 direction_entrance = (map_element == NULL ? 0 : map_element_get_direction(map_element));
 
     x *= 32;
     y *= 32;
@@ -3158,7 +3159,7 @@ static void peep_update_ride_sub_state_7(rct_peep* peep){
 
         rct_map_element* map_element = ride_get_station_exit_element(ride, x, y, z);
 
-        uint8 exit_direction = (map_element == NULL ? 0 : map_element->type & MAP_ELEMENT_DIRECTION_MASK);
+        uint8 exit_direction = (map_element == NULL ? 0 : map_element_get_direction(map_element));
         exit_direction ^= (1 << 1);
 
         if (!ride_type_has_flag(ride->type, RIDE_TYPE_FLAG_16)){
@@ -3176,8 +3177,8 @@ static void peep_update_ride_sub_state_7(rct_peep* peep){
                         break;
                 }
 
-                uint8 al = (inner_map->properties.track.sequence & MAP_ELEM_TRACK_SEQUENCE_STATION_INDEX_MASK) >> 4;
-                if (al == peep->current_ride_station)
+                uint8 stationIndex = map_element_get_station(inner_map);
+                if (stationIndex == peep->current_ride_station)
                     break;
             }
 
@@ -3247,14 +3248,14 @@ static void peep_update_ride_sub_state_7(rct_peep* peep){
 
     rct_map_element* map_element = ride_get_station_exit_element(ride, x, y, z);
 
-    uint8 exit_direction = (map_element == NULL ? 0 : map_element->type & MAP_ELEMENT_DIRECTION_MASK);
+    uint8 exit_direction = (map_element == NULL ? 0 : map_element_get_direction(map_element));
 
     x = ride->station_starts[peep->current_ride_station].x;
     y = ride->station_starts[peep->current_ride_station].y;
 
     map_element = ride_get_station_start_track_element(ride, peep->current_ride_station);
 
-    uint8 station_direction = (map_element == NULL ? 0 : map_element->type & MAP_ELEMENT_DIRECTION_MASK);
+    uint8 station_direction = (map_element == NULL ? 0 : map_element_get_direction(map_element));
 
     vehicle = GET_VEHICLE(ride->vehicles[peep->current_train]);
 
@@ -3322,7 +3323,7 @@ static void peep_update_ride_prepare_for_state_9(rct_peep* peep){
 
     rct_map_element* map_element = ride_get_station_exit_element(ride, x, y, z);
 
-    uint8 exit_direction = (map_element == NULL ? 0 : map_element->type & MAP_ELEMENT_DIRECTION_MASK);
+    uint8 exit_direction = (map_element == NULL ? 0 : map_element_get_direction(map_element));
 
     x *= 32;
     y *= 32;
@@ -3539,7 +3540,7 @@ static void peep_update_ride_sub_state_13(rct_peep* peep){
 
     rct_map_element* map_element = ride_get_station_exit_element(ride, x, y, z);
 
-    uint8 exit_direction = (map_element == NULL ? 0 : map_element->type & MAP_ELEMENT_DIRECTION_MASK);
+    uint8 exit_direction = (map_element == NULL ? 0 : map_element_get_direction(map_element));
     exit_direction ^= (1 << 1);
 
     x *= 32;
@@ -3609,7 +3610,7 @@ static void peep_update_ride_sub_state_14(rct_peep* peep){
 
             rct_map_element* map_element = ride_get_station_exit_element(ride, x, y, z);
 
-            uint8 exit_direction = (map_element == NULL ? 0 : map_element->type & MAP_ELEMENT_DIRECTION_MASK);
+            uint8 exit_direction = (map_element == NULL ? 0 : map_element_get_direction(map_element));
 
             peep->var_37 = (exit_direction * 4) | (peep->var_37 & 0x30) |  1;
             x = ride->station_starts[peep->current_ride_station].x;
@@ -3800,7 +3801,7 @@ static void peep_update_ride_sub_state_16(rct_peep* peep){
 
     rct_map_element* map_element = ride_get_station_exit_element(ride, x, y, z);
 
-    uint8 exit_direction = (map_element == NULL ? 0 : map_element->type & MAP_ELEMENT_DIRECTION_MASK);
+    uint8 exit_direction = (map_element == NULL ? 0 : map_element_get_direction(map_element));
     exit_direction ^= (1 << 1);
 
     x *= 32;
@@ -4070,7 +4071,7 @@ static void peep_update_ride_sub_state_20(rct_peep* peep){
             peep->destination_x = x;
             peep->destination_y = y;
             peep->destination_tolerence = 3;
-            peep->happiness_target = min(peep->happiness_target + 30, 255);
+            peep->happiness_target = min(peep->happiness_target + 30, PEEP_MAX_HAPPINESS);
             peep->happiness = peep->happiness_target;
         }
         else{
@@ -4098,7 +4099,7 @@ static void peep_update_ride_sub_state_20(rct_peep* peep){
     peep->destination_y = y;
     peep->destination_tolerence = 3;
 
-    peep->happiness_target = min(peep->happiness_target + 30, 255);
+    peep->happiness_target = min(peep->happiness_target + 30, PEEP_MAX_HAPPINESS);
     peep->happiness = peep->happiness_target;
 
     peep_stop_purchase_thought(peep, ride->type);
@@ -4587,7 +4588,7 @@ static bool peep_update_fixing_sub_state_9(bool firstRun, rct_peep *peep, rct_ri
                 input.y = trackBeginEnd.begin_y;
                 input.element = trackBeginEnd.begin_element;
 
-                direction = trackBeginEnd.begin_element->type & 3;
+                direction = map_element_get_direction(trackBeginEnd.begin_element);
                 continue;
             }
 
@@ -5946,7 +5947,7 @@ static void peep_update_heading_to_inspect(rct_peep* peep){
             }
         }
 
-        uint8 direction = map_element->type & MAP_ELEMENT_DIRECTION_MASK;
+        uint8 direction = map_element_get_direction(map_element);
         peep->direction = direction;
 
         sint32 x = peep->next_x + 16 + word_981D6C[direction].x * 53;
@@ -6066,7 +6067,7 @@ static void peep_update_answering(rct_peep* peep){
             }
         }
 
-        uint8 direction = map_element->type & MAP_ELEMENT_DIRECTION_MASK;
+        uint8 direction = map_element_get_direction(map_element);
         peep->direction = direction;
 
         sint32 x = peep->next_x + 16 + word_981D6C[direction].x * 53;
@@ -6324,7 +6325,7 @@ static void peep_update_patrolling(rct_peep* peep){
         rct_map_element* map_element = map_get_surface_element_at(peep->next_x / 32, peep->next_y / 32);
 
         if (map_element != NULL){
-            sint32 water_height = map_element->properties.surface.terrain & MAP_ELEMENT_WATER_HEIGHT_MASK;
+            sint32 water_height = map_get_water_height(map_element);
             if (water_height){
                 invalidate_sprite_2((rct_sprite*)peep);
                 water_height *= 16;
@@ -6498,7 +6499,7 @@ static void peep_update_walking(rct_peep* peep){
     if ((peep->next_var_29 & 0x18) == 8){
         rct_map_element* map_element = map_get_surface_element_at(peep->next_x / 32, peep->next_y / 32);
 
-        sint32 water_height = map_element->properties.surface.terrain & MAP_ELEMENT_WATER_HEIGHT_MASK;
+        sint32 water_height = map_get_water_height(map_element);
         if (water_height){
             invalidate_sprite_2((rct_sprite*)peep);
             water_height *= 16;
@@ -7208,7 +7209,7 @@ rct_peep *peep_generate(sint32 x, sint32 y, sint32 z)
     /* Initial value will vary by -15..16 */
     sint8 happiness_delta = (peep_rand() & 0x1F) - 15;
     /* Adjust by the delta, clamping at min=0 and max=255. */
-    peep->happiness = clamp(0, peep->happiness + happiness_delta, 255);
+    peep->happiness = clamp(0, peep->happiness + happiness_delta, PEEP_MAX_HAPPINESS);
     peep->happiness_target = peep->happiness;
     peep->nausea = 0;
     peep->nausea_target = 0;
@@ -7287,7 +7288,7 @@ rct_peep *peep_generate(sint32 x, sint32 y, sint32 z)
     peep->trousers_colour = trouser_colours[trousers_colour];
 
     /* It looks like 65 is about 50% energy level, so this initialises
-     * a peep with approx 50%-100% energy. */
+     * a peep with approx 50%-100% energy (0x3F = 63, 63 + 65 = 128). */
     uint8 energy = (peep_rand() & 0x3F) + 65;
     peep->energy = energy;
     peep->energy_target = energy;
@@ -8065,7 +8066,7 @@ static sint32 peep_interact_with_entrance(rct_peep* peep, sint16 x, sint16 y, rc
         if (map_element->properties.entrance.index & 0xF)
             return peep_return_to_centre_of_tile(peep);
 
-        uint8 entranceDirection = map_element->type & MAP_ELEMENT_DIRECTION_MASK;
+        uint8 entranceDirection = map_element_get_direction(map_element);
         if (entranceDirection != peep->direction){
             if ((entranceDirection ^ (1 << 1)) != peep->direction)
                 return peep_return_to_centre_of_tile(peep);
@@ -8776,14 +8777,14 @@ static uint8 footpath_element_dest_in_dir(
             if (z != mapElement->base_height) continue;
             switch (mapElement->properties.entrance.type) {
             case ENTRANCE_TYPE_RIDE_ENTRANCE:
-                direction = mapElement->type & MAP_ELEMENT_DIRECTION_MASK;
+                direction = map_element_get_direction(mapElement);
                 if (direction == chosenDirection) {
                     *outRideIndex = mapElement->properties.entrance.ride_index;
                     return PATH_SEARCH_RIDE_ENTRANCE;
                 }
                 break;
             case ENTRANCE_TYPE_RIDE_EXIT:
-                direction = mapElement->type & MAP_ELEMENT_DIRECTION_MASK;
+                direction = map_element_get_direction(mapElement);
                 if (direction == chosenDirection) {
                     *outRideIndex = mapElement->properties.entrance.ride_index;
                     return PATH_SEARCH_RIDE_EXIT;
@@ -9098,7 +9099,7 @@ static void peep_pathfind_heuristic_search(sint16 x, sint16 y, uint8 z, rct_peep
                  * For mechanics heading for the ride entrance
                  * (in the case when the station has no exit),
                  * the goal is the ride entrance tile. */
-                direction = mapElement->type & MAP_ELEMENT_DIRECTION_MASK;
+                direction = map_element_get_direction(mapElement);
                 if (direction == test_edge) {
                     /* The rideIndex will be useful for
                      * adding transport rides later. */
@@ -9117,7 +9118,7 @@ static void peep_pathfind_heuristic_search(sint16 x, sint16 y, uint8 z, rct_peep
             case ENTRANCE_TYPE_RIDE_EXIT:
                 /* For mechanics heading for the ride exit, the
                  * goal is the ride exit tile. */
-                direction = mapElement->type & MAP_ELEMENT_DIRECTION_MASK;
+                direction = map_element_get_direction(mapElement);
                 if (direction == test_edge) {
                     searchResult = PATH_SEARCH_RIDE_EXIT;
                     found = true;
@@ -10062,7 +10063,7 @@ static void get_ride_queue_end(sint16 *x, sint16 *y, sint16 *z){
     if (!found)
         return;
 
-    uint8 direction = (mapElement->type & 3) ^ (1 << 1);
+    uint8 direction = map_element_get_direction_with_offset(mapElement, 2);
     rct_map_element* lastPathElement = NULL;
     rct_map_element* firstPathElement = NULL;
 
@@ -10533,7 +10534,7 @@ static sint32 peep_perform_next_action(rct_peep *peep)
             if (mapElement == NULL)
                 return peep_return_to_centre_of_tile(peep);
 
-            sint16 water_height = mapElement->properties.surface.terrain & MAP_ELEMENT_WATER_HEIGHT_MASK;
+            sint16 water_height = map_get_water_height(mapElement);
             if (water_height)
                 return peep_return_to_centre_of_tile(peep);
 
@@ -10633,7 +10634,7 @@ static void peep_on_enter_ride(rct_peep *peep, sint32 rideIndex)
 
     peep_set_has_ridden(peep, peep->current_ride);
     peep_update_favourite_ride(peep, ride);
-    peep->happiness_target = clamp(0, peep->happiness_target + satisfaction, 255);
+    peep->happiness_target = clamp(0, peep->happiness_target + satisfaction, PEEP_MAX_HAPPINESS);
     peep_update_ride_nausea_growth(peep, ride);
 }
 
@@ -10650,7 +10651,7 @@ static void peep_on_enter_ride(rct_peep *peep, sint32 rideIndex)
 static void peep_update_favourite_ride(rct_peep *peep, rct_ride *ride)
 {
     peep->peep_flags &= ~PEEP_FLAGS_RIDE_SHOULD_BE_MARKED_AS_FAVOURITE;
-    uint8 peepRideRating = clamp(0, (ride->excitement / 4) + peep->happiness, 255);
+    uint8 peepRideRating = clamp(0, (ride->excitement / 4) + peep->happiness, PEEP_MAX_HAPPINESS);
     if (peepRideRating >= peep->favourite_ride_rating) {
         if (peep->happiness >= 160 && peep->happiness_target >= 160) {
             peep->favourite_ride_rating = peepRideRating;
@@ -11041,8 +11042,8 @@ loc_69B119:
             }
 
             sint32 happinessGrowth = value * 4;
-            peep->happiness_target = min((peep->happiness_target + happinessGrowth), 255);
-            peep->happiness = min((peep->happiness + happinessGrowth), 255);
+            peep->happiness_target = min((peep->happiness_target + happinessGrowth), PEEP_MAX_HAPPINESS);
+            peep->happiness = min((peep->happiness + happinessGrowth), PEEP_MAX_HAPPINESS);
         }
     }
 
@@ -11426,7 +11427,7 @@ static bool peep_find_ride_to_look_at(rct_peep *peep, uint8 edge, uint8 *rideToV
             if (map_element_is_ghost(mapElement)) continue;
         }
         if (map_element_get_type(mapElement) != MAP_ELEMENT_TYPE_WALL) continue;
-        if ((map_element_get_direction(mapElement) ^ 0x2) != edge) continue;
+        if (map_element_get_direction_with_offset(mapElement, 2) != edge) continue;
         if (get_wall_entry(mapElement->properties.wall.type)->wall.flags2 & WALL_SCENERY_2_FLAG4) continue;
         // TODO: Check whether this shouldn't be <=, as the other loops use. If so, also extract as loop A.
         if (peep->next_z + 4 >= mapElement->base_height) continue;
@@ -11512,7 +11513,7 @@ static bool peep_find_ride_to_look_at(rct_peep *peep, uint8 edge, uint8 *rideToV
             if (map_element_is_ghost(mapElement)) continue;
         }
         if (map_element_get_type(mapElement) != MAP_ELEMENT_TYPE_WALL) continue;
-        if ((map_element_get_direction(mapElement) ^ 0x2) != edge) continue;
+        if (map_element_get_direction_with_offset(mapElement, 2) != edge) continue;
         if (get_wall_entry(mapElement->properties.wall.type)->wall.flags2 & WALL_SCENERY_2_FLAG4) continue;
         if (peep->next_z + 6 <= mapElement->base_height) continue;
         if (peep->next_z >= mapElement->clearance_height) continue;
@@ -11595,7 +11596,7 @@ static bool peep_find_ride_to_look_at(rct_peep *peep, uint8 edge, uint8 *rideToV
             if (map_element_is_ghost(mapElement)) continue;
         }
         if (map_element_get_type(mapElement) != MAP_ELEMENT_TYPE_WALL) continue;
-        if ((map_element_get_direction(mapElement) ^ 0x2) != edge) continue;
+        if (map_element_get_direction_with_offset(mapElement, 2) != edge) continue;
         if (get_wall_entry(mapElement->properties.wall.type)->wall.flags2 & WALL_SCENERY_2_FLAG4) continue;
         if (peep->next_z + 8 <= mapElement->base_height) continue;
         if (peep->next_z >= mapElement->clearance_height) continue;

@@ -82,6 +82,8 @@ static money32 SmallSceneryRemove(sint16 x, sint16 y, sint8 baseHeight, uint8 qu
     bool sceneryFound = false;
     rct_map_element* mapElement = map_get_first_element_at(x / 32, y / 32);
     do {
+        if (map_element_get_type(mapElement) != MAP_ELEMENT_TYPE_SCENERY)
+            continue;
         if ((mapElement->type >> 6) != quadrant)
             continue;
         if (mapElement->base_height != baseHeight)
@@ -149,10 +151,9 @@ static money32 SmallScenerySetColour(sint16 x, sint16 y, sint8 baseHeight, uint8
 
     if (flags & GAME_COMMAND_FLAG_APPLY)
     {
-        mapElement->properties.scenery.colour_1 &= 0xE0;
-        mapElement->properties.scenery.colour_1 |= primaryColour;
-        mapElement->properties.scenery.colour_2 &= 0xE0;
-        mapElement->properties.scenery.colour_2 |= secondaryColour;
+        scenery_small_set_primary_colour(mapElement, primaryColour);
+        scenery_small_set_secondary_colour(mapElement, secondaryColour);
+
         map_invalidate_tile_full(x, y);
     }
 
@@ -275,9 +276,9 @@ static money32 SmallSceneryPlace(sint16 x,
 
     rct_map_element* surfaceElement = map_get_surface_element_at(x / 32, y / 32);
 
-    if (!gCheatsDisableClearanceChecks && (surfaceElement->properties.surface.terrain & MAP_ELEMENT_WATER_HEIGHT_MASK))
+    if (!gCheatsDisableClearanceChecks && map_get_water_height(surfaceElement) > 0)
     {
-        sint32 water_height = ((surfaceElement->properties.surface.terrain & MAP_ELEMENT_WATER_HEIGHT_MASK) * 16) - 1;
+        sint32 water_height = (map_get_water_height(surfaceElement) * 16) - 1;
         if (water_height > targetHeight)
         {
             gGameCommandErrorText = STR_CANT_BUILD_THIS_UNDERWATER;
@@ -293,9 +294,9 @@ static money32 SmallSceneryPlace(sint16 x,
             return MONEY32_UNDEFINED;
         }
 
-        if (surfaceElement->properties.surface.terrain & MAP_ELEMENT_WATER_HEIGHT_MASK)
+        if (map_get_water_height(surfaceElement) > 0)
         {
-            if (((surfaceElement->properties.surface.terrain & MAP_ELEMENT_WATER_HEIGHT_MASK) * 16) > targetHeight)
+            if ((map_get_water_height(surfaceElement) * 16) > targetHeight)
             {
                 gGameCommandErrorText = STR_CAN_ONLY_BUILD_THIS_ON_LAND;
                 return MONEY32_UNDEFINED;
@@ -321,7 +322,7 @@ static money32 SmallSceneryPlace(sint16 x,
 
         if (!isOnWater)
         {
-            if ((surfaceElement->properties.surface.terrain & MAP_ELEMENT_WATER_HEIGHT_MASK) ||
+            if (map_get_water_height(surfaceElement) ||
                 (surfaceElement->base_height * 8) != targetHeight)
             {
 
@@ -414,13 +415,13 @@ static money32 SmallSceneryPlace(sint16 x,
     newElement->type = type;
     newElement->properties.scenery.type = sceneryType;
     newElement->properties.scenery.age = 0;
-    newElement->properties.scenery.colour_1 = primaryColour;
-    newElement->properties.scenery.colour_2 = secondaryColour;
+    scenery_small_set_primary_colour(newElement, primaryColour);
+    scenery_small_set_secondary_colour(newElement, secondaryColour);
     newElement->clearance_height = newElement->base_height + ((sceneryEntry->small_scenery.height + 7) / 8);
 
     if (supportsRequired)
     {
-        newElement->properties.scenery.colour_1 |= 0x20;
+        scenery_small_set_supports_needed(newElement);
     }
 
     if (flags & GAME_COMMAND_FLAG_GHOST)

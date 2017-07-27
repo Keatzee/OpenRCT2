@@ -279,6 +279,11 @@ sint32 map_element_get_direction(const rct_map_element *element)
     return element->type & MAP_ELEMENT_DIRECTION_MASK;
 }
 
+sint32 map_element_get_direction_with_offset(const rct_map_element *element, uint8 offset)
+{
+    return ((element->type & MAP_ELEMENT_DIRECTION_MASK) + offset) % 4;
+}
+
 sint32 map_element_get_terrain(const rct_map_element *element)
 {
     sint32 terrain = (element->properties.surface.terrain >> 5) & 7;
@@ -517,7 +522,7 @@ sint32 map_element_height(sint32 x, sint32 y)
     }
 
     uint32 height =
-        ((mapElement->properties.surface.terrain & MAP_ELEMENT_WATER_HEIGHT_MASK) << 20) |
+        (map_get_water_height(mapElement) << 20) |
         (mapElement->base_height << 3);
 
     uint32 slope = (mapElement->properties.surface.slope & MAP_ELEMENT_SLOPE_MASK);
@@ -888,7 +893,7 @@ void game_command_remove_large_scenery(sint32* eax, sint32* ebx, sint32* ecx, si
         if ((map_element->properties.scenerymultiple.type >> 10) != tileIndex)
             continue;
 
-        if ((map_element->type & MAP_ELEMENT_DIRECTION_MASK) != map_element_direction)
+        if ((map_element_get_direction(map_element)) != map_element_direction)
             continue;
 
         // If we are removing ghost elements
@@ -959,7 +964,7 @@ void game_command_remove_large_scenery(sint32* eax, sint32* ebx, sint32* ecx, si
             if (map_element_get_type(sceneryElement) != MAP_ELEMENT_TYPE_SCENERY_MULTIPLE)
                 continue;
 
-            if ((sceneryElement->type & MAP_ELEMENT_DIRECTION_MASK) != map_element_direction)
+            if (map_element_get_direction(sceneryElement) != map_element_direction)
                 continue;
 
             if ((sceneryElement->properties.scenerymultiple.type >> 10) != i)
@@ -1142,7 +1147,7 @@ restart_from_beginning:
                 sint32 eax = x * 32;
                 sint32 ebx = flags;
                 sint32 ecx = y * 32;
-                sint32 edx = (mapElement->base_height << 8) | (mapElement->type & MAP_ELEMENT_DIRECTION_MASK);
+                sint32 edx = (mapElement->base_height << 8) | (map_element_get_direction(mapElement));
                 sint32 edi = 0, ebp = 0;
                 cost = game_do_command(eax, ebx, ecx, edx, GAME_COMMAND_REMOVE_WALL, edi, ebp);
 
@@ -1157,7 +1162,7 @@ restart_from_beginning:
         case MAP_ELEMENT_TYPE_SCENERY_MULTIPLE:
             if (clear & (1 << 1)) {
                 sint32 eax = x * 32;
-                sint32 ebx = flags | ((mapElement->type & MAP_ELEMENT_DIRECTION_MASK) << 8);
+                sint32 ebx = flags | ((map_element_get_direction(mapElement)) << 8);
                 sint32 ecx = y * 32;
                 sint32 edx = mapElement->base_height | ((mapElement->properties.scenerymultiple.type >> 10) << 8);
                 sint32 edi = 0, ebp = 0;
@@ -1315,7 +1320,7 @@ static money32 map_change_surface_style(sint32 x0, sint32 y0, sint32 x1, sint32 
 
             if (surfaceStyle != 0xFF){
                 uint8 cur_terrain = (
-                    (mapElement->type&MAP_ELEMENT_DIRECTION_MASK) << 3) |
+                    map_element_get_direction(mapElement) << 3) |
                     (mapElement->properties.surface.terrain >> 5);
 
                 if (surfaceStyle != cur_terrain) {
@@ -1364,9 +1369,12 @@ static money32 map_change_surface_style(sint32 x0, sint32 y0, sint32 x1, sint32 
                 }
             }
 
-            if (flags & 1) {
-                if (!(mapElement->properties.surface.terrain & MAP_ELEMENT_SURFACE_TERRAIN_MASK)) {
-                    if (!(mapElement->type & MAP_ELEMENT_DIRECTION_MASK)) {
+            if (flags & 1)
+            {
+                if (!(mapElement->properties.surface.terrain & MAP_ELEMENT_SURFACE_TERRAIN_MASK))
+                {
+                    if (!(map_element_get_direction(mapElement)))
+                    {
                         if ((mapElement->properties.surface.grass_length & 7) != GRASS_LENGTH_CLEAR_0) {
                             mapElement->properties.surface.grass_length = GRASS_LENGTH_CLEAR_0;
                             map_invalidate_tile_full(x, y);
@@ -1538,7 +1546,7 @@ static money32 map_set_land_height(sint32 flags, sint32 x, sint32 y, sint32 heig
     rct_map_element *surfaceElement = map_get_surface_element_at(x / 32, y / 32);
     if(surfaceElement->type & MAP_ELEMENT_TYPE_FLAG_HIGHLIGHT)
     {
-        sint32 waterHeight = surfaceElement->properties.surface.terrain & MAP_ELEMENT_WATER_HEIGHT_MASK;
+        sint32 waterHeight = map_get_water_height(surfaceElement);
         if(waterHeight != 0)
         {
             if(style & 0x1F)
@@ -1827,6 +1835,11 @@ static money32 lower_land(sint32 flags, sint32 x, sint32 y, sint32 z, sint32 ax,
     return cost;
 }
 
+sint32 map_get_water_height(const rct_map_element * mapElement)
+{
+    return mapElement->properties.surface.terrain & MAP_ELEMENT_WATER_HEIGHT_MASK;
+}
+
 money32 raise_water(sint16 x0, sint16 y0, sint16 x1, sint16 y1, uint8 flags)
 {
     money32 cost = 0;
@@ -1844,8 +1857,8 @@ money32 raise_water(sint16 x0, sint16 y0, sint16 x1, sint16 y1, uint8 flags)
             rct_map_element* map_element = map_get_surface_element_at(xi / 32, yi / 32);
             if (map_element != NULL) {
                 uint8 height = map_element->base_height;
-                if (map_element->properties.surface.terrain & 0x1F)
-                    height = (map_element->properties.surface.terrain & 0x1F) * 2;
+                if (map_get_water_height(map_element) > 0)
+                    height = map_get_water_height(map_element) * 2;
                 if (max_height > height)
                     max_height = height;
             }
@@ -1857,7 +1870,7 @@ money32 raise_water(sint16 x0, sint16 y0, sint16 x1, sint16 y1, uint8 flags)
             rct_map_element* map_element = map_get_surface_element_at(xi / 32, yi / 32);
             if (map_element != NULL) {
                 if (map_element->base_height <= max_height){
-                    uint8 height = (map_element->properties.surface.terrain & 0x1F);
+                    uint8 height = map_get_water_height(map_element);
                     if (height != 0) {
                         height *= 2;
                         if (height > max_height)
@@ -1924,7 +1937,7 @@ money32 lower_water(sint16 x0, sint16 y0, sint16 x1, sint16 y1, uint8 flags)
         for (sint32 xi = x0; xi <= x1; xi += 32){
             rct_map_element* map_element = map_get_surface_element_at(xi / 32, yi / 32);
             if (map_element != NULL) {
-                uint8 height = map_element->properties.surface.terrain & 0x1F;
+                uint8 height = map_get_water_height(map_element);
                 if (height != 0) {
                     height *= 2;
                     if (height > min_height)
@@ -1938,7 +1951,7 @@ money32 lower_water(sint16 x0, sint16 y0, sint16 x1, sint16 y1, uint8 flags)
         for (sint32 xi = x0; xi <= x1; xi += 32) {
             rct_map_element* map_element = map_get_surface_element_at(xi / 32, yi / 32);
             if (map_element != NULL) {
-                uint8 height = (map_element->properties.surface.terrain & 0x1F);
+                uint8 height = map_get_water_height(map_element);
                 if (height != 0) {
                     height *= 2;
                     if (height < min_height)
@@ -2454,8 +2467,9 @@ void game_command_set_water_height(sint32* eax, sint32* ebx, sint32* ecx, sint32
     rct_map_element* map_element = map_get_surface_element_at(x / 32, y / 32);
     sint32 zHigh = map_element->base_height;
     sint32 zLow = base_height;
-    if(map_element->properties.surface.terrain & 0x1F){
-        zHigh = (map_element->properties.surface.terrain & 0x1F) * 2;
+    if (map_get_water_height(map_element) > 0)
+    {
+        zHigh = map_get_water_height(map_element) * 2;
     }
     if(zLow > zHigh){
         sint32 temp = zHigh;
@@ -2719,9 +2733,70 @@ void game_command_place_large_scenery(sint32* eax, sint32* ebx, sint32* ecx, sin
     }
 }
 
-sint32 map_get_station(rct_map_element *mapElement)
+sint32 map_element_get_station(const rct_map_element * mapElement)
 {
     return (mapElement->properties.track.sequence & MAP_ELEM_TRACK_SEQUENCE_STATION_INDEX_MASK) >> 4;
+}
+
+void map_element_set_station(rct_map_element * mapElement, uint32 stationIndex)
+{
+    mapElement->properties.track.sequence &= ~MAP_ELEM_TRACK_SEQUENCE_STATION_INDEX_MASK;
+    mapElement->properties.track.sequence |= (stationIndex << 4);
+}
+
+sint32 map_element_get_track_sequence(const rct_map_element * mapElement)
+{
+    return mapElement->properties.track.sequence & MAP_ELEM_TRACK_SEQUENCE_SEQUENCE_MASK;
+}
+
+void map_element_set_track_sequence(rct_map_element * mapElement, sint32 trackSequence)
+{
+    mapElement->properties.track.sequence &= ~MAP_ELEM_TRACK_SEQUENCE_SEQUENCE_MASK;
+    mapElement->properties.track.sequence |= (trackSequence & MAP_ELEM_TRACK_SEQUENCE_SEQUENCE_MASK);
+}
+
+bool map_element_get_green_light(const rct_map_element * mapElement)
+{
+    return (bool)mapElement->properties.track.sequence & MAP_ELEM_TRACK_SEQUENCE_GREEN_LIGHT;
+}
+
+void map_element_set_green_light(rct_map_element * mapElement, bool greenLight)
+{
+    mapElement->properties.track.sequence &= ~MAP_ELEM_TRACK_SEQUENCE_GREEN_LIGHT;
+    if (greenLight)
+    {
+        mapElement->properties.track.sequence |= MAP_ELEM_TRACK_SEQUENCE_GREEN_LIGHT;
+    }
+}
+
+sint32 map_element_get_brake_booster_speed(const rct_map_element *mapElement)
+{
+    return (mapElement->properties.track.sequence >> 4) << 1;
+}
+
+void map_element_set_brake_booster_speed(rct_map_element *mapElement, sint32 speed)
+{
+    mapElement->properties.track.sequence = map_element_get_track_sequence(mapElement) | ((speed >> 1) << 4);
+}
+
+bool map_element_is_taking_photo(const rct_map_element * mapElement)
+{
+    return (bool)mapElement->properties.track.sequence & MAP_ELEM_TRACK_SEQUENCE_TAKING_PHOTO_MASK;
+}
+
+void map_element_set_onride_photo_timeout(rct_map_element * mapElement)
+{
+    mapElement->properties.track.sequence &= MAP_ELEM_TRACK_SEQUENCE_SEQUENCE_MASK;
+    mapElement->properties.track.sequence |= (3 << 4);
+}
+
+void map_element_decrement_onride_photo_timout(rct_map_element * mapElement)
+{
+    // We should only touch the upper 4 bits, avoid underflow into the lower 4.
+    if (mapElement->properties.track.sequence & MAP_ELEM_TRACK_SEQUENCE_TAKING_PHOTO_MASK)
+    {
+        mapElement->properties.track.sequence -= (1 << 4);
+    }
 }
 
 /**
@@ -3083,7 +3158,7 @@ sint32 map_can_construct_with_clear_at(sint32 x, sint32 y, sint32 zLow, sint32 z
             }
             continue;
         }
-        sint32 water_height = ((map_element->properties.surface.terrain & MAP_ELEMENT_WATER_HEIGHT_MASK) * 2);
+        sint32 water_height = map_get_water_height(map_element) * 2;
         if (water_height && water_height > zLow && map_element->base_height < zHigh) {
             gMapGroundFlags |= ELEMENT_IS_UNDERWATER;
             if (water_height < zHigh) {
@@ -3221,7 +3296,7 @@ static void map_update_grass_length(sint32 x, sint32 y, rct_map_element *mapElem
     sint32 grassLength = mapElement->properties.surface.grass_length & 7;
 
     // Check if grass is underwater or outside park
-    sint32 waterHeight = (mapElement->properties.surface.terrain & 0x1F) * 2;
+    sint32 waterHeight = map_get_water_height(mapElement) * 2;
     if (waterHeight > mapElement->base_height || !map_is_location_in_park(x, y)) {
         if (grassLength != GRASS_LENGTH_CLEAR_0)
             map_set_grass_length(x, y, mapElement, GRASS_LENGTH_CLEAR_0);
@@ -3490,7 +3565,7 @@ static void clear_element_at(sint32 x, sint32 y, rct_map_element **elementPtr)
                 x,
                 GAME_COMMAND_FLAG_APPLY,
                 y,
-                (element->type & MAP_ELEMENT_DIRECTION_MASK) | (element->base_height << 8),
+                map_element_get_direction(element) | (element->base_height << 8),
                 GAME_COMMAND_REMOVE_WALL,
                 0,
                 0
@@ -3500,7 +3575,7 @@ static void clear_element_at(sint32 x, sint32 y, rct_map_element **elementPtr)
         gGameCommandErrorTitle = STR_CANT_REMOVE_THIS;
         game_do_command(
                 x,
-                (GAME_COMMAND_FLAG_APPLY) | ((element->type & MAP_ELEMENT_DIRECTION_MASK) << 8),
+                (GAME_COMMAND_FLAG_APPLY) | (map_element_get_direction(element) << 8),
                 y,
                 (element->base_height) | (((element->properties.scenerymultiple.type >> 8) >> 2) << 8),
                 GAME_COMMAND_REMOVE_LARGE_SCENERY,
@@ -3567,7 +3642,7 @@ sint32 map_get_highest_z(sint32 tileX, sint32 tileY)
     if ((mapElement->properties.surface.slope & 0x10) != 0)
         z += 16;
 
-    z = max(z, (mapElement->properties.surface.terrain & 0x1F) * 16);
+    z = max(z, map_get_water_height(mapElement) * 16);
     return z;
 }
 
@@ -3595,7 +3670,7 @@ rct_map_element *map_get_large_scenery_segment(sint32 x, sint32 y, sint32 z, sin
             continue;
         if ((mapElement->properties.scenerymultiple.type >> 10) != sequence)
             continue;
-        if ((mapElement->type & MAP_ELEMENT_DIRECTION_MASK) != direction)
+        if ((map_element_get_direction(mapElement)) != direction)
             continue;
 
         return mapElement;
@@ -3864,7 +3939,7 @@ bool map_surface_is_blocked(sint16 x, sint16 y){
         return true;
     }
 
-    sint16 water_height = mapElement->properties.surface.terrain & MAP_ELEMENT_WATER_HEIGHT_MASK;
+    sint16 water_height = map_get_water_height(mapElement);
     water_height *= 2;
     if (water_height > mapElement->base_height)
         return true;
@@ -4035,7 +4110,7 @@ void game_command_set_sign_style(sint32* eax, sint32* ebx, sint32* ecx, sint32* 
             banner->x * 32,
             banner->y * 32,
             mapElement->base_height,
-            mapElement->type & 3,
+            map_element_get_direction(mapElement),
             mapElement->properties.scenerymultiple.type >> 10,
             mainColour,
             textColour
@@ -4263,7 +4338,7 @@ rct_map_element *map_get_track_element_at_of_type_seq(sint32 x, sint32 y, sint32
         if (map_element_get_type(mapElement) != MAP_ELEMENT_TYPE_TRACK) continue;
         if (mapElement->base_height != z) continue;
         if (mapElement->properties.track.type != trackType) continue;
-        if ((mapElement->properties.track.sequence & MAP_ELEM_TRACK_SEQUENCE_SEQUENCE_MASK) != sequence) continue;
+        if (map_element_get_track_sequence(mapElement) != sequence) continue;
 
         return mapElement;
     } while (!map_element_is_last_for_tile(mapElement++));

@@ -78,6 +78,7 @@ validate_global_widx(WC_TOP_TOOLBAR, WIDX_LAND);
 validate_global_widx(WC_TOP_TOOLBAR, WIDX_WATER);
 validate_global_widx(WC_TOP_TOOLBAR, WIDX_SCENERY);
 validate_global_widx(WC_TOP_TOOLBAR, WIDX_PATH);
+validate_global_widx(WC_TOP_TOOLBAR, WIDX_CLEAR_SCENERY);
 
 typedef enum {
     DDIDX_NEW_GAME = 0,
@@ -968,7 +969,7 @@ static void repaint_scenery_tool_down(sint16 x, sint16 y, rct_widgetindex widget
             grid_x,
             1 | (gWindowSceneryPrimaryColour << 8),
             grid_y,
-            (map_element->type & MAP_ELEMENT_DIRECTION_MASK) | (map_element->base_height << 8),
+            (map_element_get_direction(map_element)) | (map_element->base_height << 8),
             GAME_COMMAND_SET_WALL_COLOUR,
             0,
             gWindowScenerySecondaryColour | (gWindowSceneryTertiaryColour << 8));
@@ -986,7 +987,7 @@ static void repaint_scenery_tool_down(sint16 x, sint16 y, rct_widgetindex widget
         gGameCommandErrorTitle = STR_CANT_REPAINT_THIS;
         game_do_command(
             grid_x,
-            1 | ((map_element->type & MAP_ELEMENT_DIRECTION_MASK) << 8),
+            1 | ((map_element_get_direction(map_element)) << 8),
             grid_y,
             map_element->base_height | ((map_element->properties.scenerymultiple.type >> 10) << 8),
             GAME_COMMAND_SET_LARGE_SCENERY_COLOUR,
@@ -1043,9 +1044,9 @@ static void scenery_eyedropper_tool_down(sint16 x, sint16 y, rct_widgetindex wid
         if (sceneryEntry != NULL && sceneryEntry != (rct_scenery_entry *)-1) {
             sint32 sceneryId = get_scenery_id_from_entry_index(OBJECT_TYPE_SMALL_SCENERY, entryIndex);
             if (sceneryId != -1 && window_scenery_set_selected_item(sceneryId)) {
-                gWindowSceneryRotation = (get_current_rotation() + map_element_get_direction(mapElement)) & 3;
-                gWindowSceneryPrimaryColour = mapElement->properties.scenery.colour_1 & 0x1F;
-                gWindowScenerySecondaryColour = mapElement->properties.scenery.colour_2 & 0x1F;
+                gWindowSceneryRotation = map_element_get_direction_with_offset(mapElement, get_current_rotation());
+                gWindowSceneryPrimaryColour = scenery_small_get_primary_colour(mapElement);
+                gWindowScenerySecondaryColour = scenery_small_get_secondary_colour(mapElement);
                 gWindowSceneryEyedropperEnabled = false;
             }
         }
@@ -1073,7 +1074,7 @@ static void scenery_eyedropper_tool_down(sint16 x, sint16 y, rct_widgetindex wid
         if (sceneryEntry != NULL && sceneryEntry != (rct_scenery_entry *)-1) {
             sint32 sceneryId = get_scenery_id_from_entry_index(OBJECT_TYPE_LARGE_SCENERY, entryIndex);
             if (sceneryId != -1 && window_scenery_set_selected_item(sceneryId)) {
-                gWindowSceneryRotation = (get_current_rotation() + map_element_get_direction(mapElement)) & 3;
+                gWindowSceneryRotation = map_element_get_direction_with_offset(mapElement, get_current_rotation());
                 gWindowSceneryPrimaryColour = mapElement->properties.scenerymultiple.colour[0] & 0x1F;
                 gWindowScenerySecondaryColour = mapElement->properties.scenerymultiple.colour[1] & 0x1F;
                 gWindowSceneryEyedropperEnabled = false;
@@ -1281,7 +1282,7 @@ static void sub_6E1F34(sint16 x, sint16 y, uint16 selected_scenery, sint16* grid
             }
 
             gSceneryPlaceZ = 0;
-            uint16 water_height = map_element->properties.surface.terrain & MAP_ELEMENT_WATER_HEIGHT_MASK;
+            uint16 water_height = map_get_water_height(map_element);
             if (water_height != 0) {
                 gSceneryPlaceZ = water_height * 16;
             }
